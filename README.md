@@ -34,6 +34,55 @@ The robotic pipeline integrates the following modules:
 - Generalizable and modular pipeline adaptable to other robots and tasks.  
 - Quantitative evaluation of grasp success rate, task time, and recovery ability.  
 
-## References  
-- [Grasp Anything Documentation](https://airvlab.github.io/grasp-anything/docs/grasp-anything/)  
-- [Contact-GraspNet (NVlabs)](https://github.com/NVlabs/contact_graspnet)  
+
+
+
+# Docker Setup
+
+This project uses Docker with NVIDIA GPU support for ROS1 Melodic development.
+
+### Prerequisites
+- Docker with NVIDIA Container Toolkit installed
+- NVIDIA GPU drivers
+- X11 forwarding support (for GUI applications)
+
+### Building the Docker Image
+
+1. **Build the ROS1 Melodic image:**
+   ```bash
+   chmod +x ./docker/build_image.sh
+   ./docker/build_image.sh
+   ```
+   This creates a Docker image named `nvidia_melodic` with:
+   - Ubuntu 18.04 base
+   - NVIDIA CUDA 10.1 support
+   - ROS1 Melodic desktop full
+   - Build tools (gcc, cmake, etc.)
+   - Python3 and ROS development tools
+
+### Running the Docker Container
+
+1. **Deploy and enter the container:**
+   ```bash
+   chmod +x ./docker/deploy_image.sh
+   ./docker/deploy_image.sh
+   ```
+
+2. **What happens when you run the container:**
+   - Mounts your current project directory to `/catkin_ws/src/obj_manipulation`
+   - Sets up GPU access for CUDA applications
+   - Enables X11 forwarding for GUI applications
+   - Sources ROS Melodic environment
+   - Builds the catkin workspace with `catkin_make`
+   - Starts an interactive bash shell
+### Opening new terminal in same container
+   ```bash
+   sudo docker ps
+   sudo docker exec -it <container ID> bash
+   ```
+### Container Environment
+
+**Working Directory:** `/catkin_ws`  
+**Project Location:** `/catkin_ws/src/obj_manipulation`  
+**ROS Environment:** Automatically sourced from `/opt/ros/melodic/setup.bash`
+ 
