@@ -3,19 +3,23 @@ import sys
 import rospy
 import moveit_commander
 from geometry_msgs.msg import Pose, PoseStamped
+from tf.transformations import quaternion_from_euler
 import time
 
 def get_goal_from_user():
-    """Get goal coordinates from user input"""
-    print("Enter goal coordinates:")
+    """Get goal position (m) and orientation (rpy in degrees) from user input"""
+    print("Enter goal pose (position in meters, orientation in degrees):")
     try:
         x = float(input("X position: "))
         y = float(input("Y position: "))
         z = float(input("Z position: "))
-        return x, y, z
+        roll_deg = float(input("Roll (deg): ") or 0)
+        pitch_deg = float(input("Pitch (deg): ") or 0)
+        yaw_deg = float(input("Yaw (deg): ") or 0)
+        return x, y, z, roll_deg, pitch_deg, yaw_deg
     except ValueError:
-        print("Invalid input. Using default values.")
-        return 0.5, 0.4, 0.5
+        print("Invalid input. Using defaults (0.5,0.4,0.5, rpy=0,0,0).")
+        return 0.5, 0.4, 0.5, 0.0, 0.0, 0.0
 
 def main():
     # Initialize MoveIt
@@ -30,14 +34,16 @@ def main():
     scene = moveit_commander.PlanningSceneInterface()
     group = moveit_commander.MoveGroupCommander("xarm6")
 
-    # Configure planning for robustness
-    planning_frame = group.get_planning_frame()
-    group.set_pose_reference_frame(planning_frame)
-    group.set_goal_position_tolerance(0.01)
-    group.set_goal_orientation_tolerance(0.1)
+    # Planner and motion configuration for robustness
+    print("Planning frame:", group.get_planning_frame())
+    print("End effector link:", group.get_end_effector_link())
+    group.set_pose_reference_frame(group.get_planning_frame())
+    group.set_planner_id("RRTConnectkConfigDefault")
     group.set_planning_time(10.0)
     group.set_num_planning_attempts(10)
     group.allow_replanning(True)
+    group.set_goal_position_tolerance(0.01)
+    group.set_goal_orientation_tolerance(0.05)
     group.set_max_velocity_scaling_factor(0.3)
     group.set_max_acceleration_scaling_factor(0.3)
 
@@ -45,17 +51,23 @@ def main():
     rospy.sleep(2)
 
     # Get goal from user
-    x, y, z = get_goal_from_user()
+    x, y, z, roll_deg, pitch_deg, yaw_deg = get_goal_from_user()
 
     # Define target pose
     target_pose = Pose()
     target_pose.position.x = x
     target_pose.position.y = y
     target_pose.position.z = z
-    target_pose.orientation.x = 0.0
-    target_pose.orientation.y = 0.0
-    target_pose.orientation.z = 0.0
-    target_pose.orientation.w = 1.0
+    # Compute normalized quaternion from RPY (convert degrees to radians)
+    qx, qy, qz, qw = quaternion_from_euler(
+        roll_deg * 3.141592653589793 / 180.0,
+        pitch_deg * 3.141592653589793 / 180.0,
+        yaw_deg * 3.141592653589793 / 180.0
+    )
+    target_pose.orientation.x = qx
+    target_pose.orientation.y = qy
+    target_pose.orientation.z = qz
+    target_pose.orientation.w = qw
 
     # Create PoseStamped for RViz visualization
     pose_stamped = PoseStamped()
@@ -65,7 +77,8 @@ def main():
     goal_pub.publish(pose_stamped)
     rospy.sleep(0.5)  # allow RViz to update
 
-    print("Planning to position: x={}, y={}, z={}".format(x, y, z))
+    print("EEF link:", group.get_end_effector_link())
+    print("Planning to pose: x={}, y={}, z={}, rpy(deg)=({}, {}, {})".format(x, y, z, roll_deg, pitch_deg, yaw_deg))
 
     # Set target and plan
     group.set_start_state_to_current_state()
@@ -78,27 +91,17 @@ def main():
         group.execute(plan, wait=True)
         print("Movement completed!")
     else:
-        print("Planning failed with OMPL. Trying Cartesian path fallback...")
-        waypoints = []
-        current_pose = group.get_current_pose().pose
-        waypoint = Pose()
-        waypoint.position.x = x
-        waypoint.position.y = y
-        waypoint.position.z = z
-        waypoint.orientation = current_pose.orientation if current_pose.orientation.w != 0.0 else target_pose.orientation
-        waypoints.append(waypoint)
-
-        (fraction, cartesian_plan, _) = group.compute_cartesian_path(
-            waypoints,
-            eef_step=0.01,
-            jump_threshold=0.0,
-            avoid_collisions=True,
-        )
-        if fraction > 0.7 and cartesian_plan and cartesian_plan.joint_trajectory.points:
-            group.execute(cartesian_plan, wait=True)
-            print("Cartesian movement completed (fraction={:.2f})".format(fraction))
+        print("Planning failed with RRTConnect. Retrying with BKPIECE and relaxed tolerances...")
+        group.set_planner_id("BKPIECEkConfigDefault")
+        group.set_goal_orientation_tolerance(0.15)
+        group.set_start_state_to_current_state()
+        group.set_pose_target(target_pose)
+        plan_retry = group.plan()
+        if plan_retry and plan_retry.joint_trajectory.points:
+            group.execute(plan_retry, wait=True)
+            print("Movement completed on retry!")
         else:
-            print("Planning failed! Target may be unreachable or in collision. Cartesian fraction={:.2f}".format(fraction))
+            print("Planning failed! Target may be unreachable or in collision.")
 
     # Clean shutdown
     group.stop()
