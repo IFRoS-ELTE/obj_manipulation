@@ -1,44 +1,11 @@
-# Grasp Anything with UR3  
-
-**Team:** Faran, Sherif, Pravin, Jim  
+ 
+# Object Manipulation with XArm6 on Scout
+**Team:** Muhammad Faran Akram, Sherif Sameh, Pravin Oli, Jamin Rahman Jim  
 
 ## Objective  
 The goal of this project is to enable a UR3 robotic arm to autonomously **detect, grasp, and place previously unseen rigid objects** into a basket. Using RGB-D perception, grasp planning, motion planning, and feedback control, the system aims to generalize across a wide variety of object shapes, sizes, and materials.  
 
-## System Overview  
-The robotic pipeline integrates the following modules:  
-
-1. **Perception** – Object detection and 6D pose estimation from RGB-D input (e.g., Intel RealSense).  
-2. **Grasp Planning** – Candidate grasp generation (PCA-based and/or Contact-GraspNet) and stability evaluation.  
-3. **Motion Planning** – ROS + MoveIt! trajectory generation for UR3 manipulator.  
-4. **Execution** – Pick-and-place actions with collision-aware planning.  
-5. **Feedback** – Visual or gripper-based monitoring, with retry mechanisms for grasp failure recovery.  
-
-## Methodology  
-- **Perception:** Mask R-CNN / YOLOv8-Seg for segmentation or point cloud clustering. Pose estimation via centroid + PCA orientation.  
-- **Grasp Planning:** Generate and evaluate candidate grasps, or leverage pretrained grasp-affordance models (e.g., Contact-GraspNet).  
-- **Motion Execution:** Pre-grasp → approach → grasp → lift → place in basket.  
-- **Feedback:** Visual alignment correction and gripper-based failure detection.  
-
-## Implementation Plan  
-- **Week 1:** Setup UR3, RGB-D camera, ROS workspace.  
-- **Week 2:** Perception module (segmentation + pose estimation).  
-- **Week 3:** Grasp planning implementation.  
-- **Week 4:** Motion planning and execution (MoveIt!).  
-- **Week 5:** Feedback mechanisms.  
-- **Week 6:** Testing with diverse unseen objects.  
-- **Week 7:** Final integration, demo, and report.  
-
-## Expected Outcome  
-- Robust grasping of arbitrary objects with the UR3 manipulator.  
-- Generalizable and modular pipeline adaptable to other robots and tasks.  
-- Quantitative evaluation of grasp success rate, task time, and recovery ability.  
-
-
-
-
 # Docker Setup
-
 This project uses Docker with NVIDIA GPU support for ROS1 Melodic development.
 
 ### Prerequisites
@@ -86,3 +53,56 @@ This project uses Docker with NVIDIA GPU support for ROS1 Melodic development.
 **Project Location:** `/catkin_ws/src/obj_manipulation`  
 **ROS Environment:** Automatically sourced from `/opt/ros/melodic/setup.bash`
  
+## Build workspace
+
+```bash
+cd /catkin_ws
+catkin_make
+source /catkin_ws/devel/setup.bash
+```
+
+## Launching robot
+
+```bash
+roslaunch obj_manipulation scout_xarm_moveit.launch
+# With Gazebo simulation
+roslaunch obj_manipulation scout_xarm_moveit.launch gazebo:=true
+
+# # With joint state publisher GUI
+# roslaunch obj_manipulation scout_xarm_moveit.launch use_gui:=true
+
+# With real hardware (when available)
+roslaunch obj_manipulation scout_xarm_moveit.launch use_real_hardware:=true robot_ip:=192.168.1.102
+```
+
+## Python MoveIt Commander
+```bash
+source /catkin_ws/devel/setup.bash
+python src/obj_manipulation/scripts/xarm_move.py
+```
+
+High-level flow:
+```
+Start
+ ├─ ROS init (node, MoveIt)
+ ├─ Configure group (frame, tolerances, time, attempts, scaling)
+ ├─ Prompt user → (x,y,z)
+ ├─ Build target pose + publish RViz marker
+ ├─ Set start state → set pose target
+ │   └─ OMPL plan
+ │       ├─ Success → execute
+ │       └─ Fail → Cartesian path
+ │           ├─ fraction > 0.7 → execute
+ │           └─ else → report failure
+ └─ Stop, clear, shutdown
+```
+
+## Troubleshooting
+- If RViz/MoveIt cannot load gripper meshes like `package://dh_robotics_ag95_model/...`:
+  - Ensure the terminal running the launch has the workspace sourced:
+    ```bash
+    source /opt/ros/melodic/setup.bash
+    source /catkin_ws/devel/setup.bash
+    rospack find dh_robotics_ag95_model
+    ```
+  - Rebuild if needed: `cd /catkin_ws && catkin_make`

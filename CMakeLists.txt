@@ -11,7 +11,42 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  moveit_commander
+  moveit_msgs
+  geometry_msgs
 )
+
+
+# Symlink nested packages in obj_manipulation to src/
+set(NESTED_PACKAGES
+  "scout_xarm/scout_xarm_description"
+  "scout_xarm/scout_xarm_base"
+  "dh_robotics_ag95_model"
+  "agx_xarm_bringup"
+  "scout_xarm/xarm_ros/xarm_description"
+  "scout_xarm/scout_xarm_moveit_config"
+
+)
+
+foreach(pkg IN LISTS NESTED_PACKAGES)
+  set(SRC_PATH "${CMAKE_SOURCE_DIR}/obj_manipulation/${pkg}")
+  get_filename_component(PKG_NAME "${pkg}" NAME)
+  set(DST_PATH "${CMAKE_SOURCE_DIR}/${PKG_NAME}")
+
+  if(EXISTS "${SRC_PATH}")
+    if(NOT EXISTS "${DST_PATH}")
+      message(STATUS "Creating symlink: ${DST_PATH} -> ${SRC_PATH}")
+      execute_process(
+        COMMAND ${CMAKE_COMMAND} -E create_symlink "${SRC_PATH}" "${DST_PATH}"
+      )
+    else()
+      message(STATUS "Symlink or folder already exists: ${DST_PATH}")
+    endif()
+  else()
+    message(WARNING "Source package does not exist: ${SRC_PATH}")
+  endif()
+endforeach()
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
