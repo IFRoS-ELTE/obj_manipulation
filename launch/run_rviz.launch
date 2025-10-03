@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Args -->
+  <arg name="limited" default="false" doc="Limit joints to [-PI, PI]"/>
+  <arg name="joint_state_publisher_gui" default="true" doc="Use GUI joint sliders"/>
+  <arg name="rviz" default="true" doc="Launch RViz"/>
+  <arg name="rviz_config" default="$(find scout_xarm_description)/launch/model_display.rviz"/>
+
+  <!-- Robot Description: full Scout base + xArm6 + DH AG95 gripper -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro --inorder '$(find scout_xarm_description)/scout_xarm6.xacro' limited:=$(arg limited)"/>
+
+  <!-- Joint State Publisher -->
+  <node if="$(arg joint_state_publisher_gui)" name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui"/>
+  <node unless="$(arg joint_state_publisher_gui)" name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
+
+  <!-- Robot State Publisher -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <!-- RViz -->
+  <node if="$(arg rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" output="screen"/>
+
+</launch>
+
+

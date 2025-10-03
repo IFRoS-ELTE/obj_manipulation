@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(obj_manipulation)
+project(scout_xarm_description)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -7,46 +7,7 @@ project(obj_manipulation)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  moveit_commander
-  moveit_msgs
-  geometry_msgs
-)
-
-
-# Symlink nested packages in obj_manipulation to src/
-set(NESTED_PACKAGES
-  "scout_xarm/scout_xarm_description"
-  "scout_xarm/scout_xarm_base"
-  "dh_robotics_ag95_model"
-  "agx_xarm_bringup"
-  "scout_xarm/xarm_ros/xarm_description"
-  "scout_xarm/scout_xarm_moveit_config"
-
-)
-
-foreach(pkg IN LISTS NESTED_PACKAGES)
-  set(SRC_PATH "${CMAKE_SOURCE_DIR}/obj_manipulation/${pkg}")
-  get_filename_component(PKG_NAME "${pkg}" NAME)
-  set(DST_PATH "${CMAKE_SOURCE_DIR}/${PKG_NAME}")
-
-  if(EXISTS "${SRC_PATH}")
-    if(NOT EXISTS "${DST_PATH}")
-      message(STATUS "Creating symlink: ${DST_PATH} -> ${SRC_PATH}")
-      execute_process(
-        COMMAND ${CMAKE_COMMAND} -E create_symlink "${SRC_PATH}" "${DST_PATH}"
-      )
-    else()
-      message(STATUS "Symlink or folder already exists: ${DST_PATH}")
-    endif()
-  else()
-    message(WARNING "Source package does not exist: ${SRC_PATH}")
-  endif()
-endforeach()
-
+find_package(catkin REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -105,7 +66,7 @@ endforeach()
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs
+#   std_msgs  # Or other packages containing msgs
 # )
 
 ################################################
@@ -139,8 +100,8 @@ endforeach()
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES obj_manipulation
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  LIBRARIES scout_xarm_description
+#  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
 
@@ -152,12 +113,12 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
-  ${catkin_INCLUDE_DIRS}
+# ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/obj_manipulation.cpp
+#   src/${PROJECT_NAME}/scout_xarm_description.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -168,7 +129,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/obj_manipulation_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/scout_xarm_description_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -232,7 +193,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_obj_manipulation.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_scout_xarm_description.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
