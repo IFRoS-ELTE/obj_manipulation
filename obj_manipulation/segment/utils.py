@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Literal
 
 import cv2
 import numpy as np
+import toml
 import torch
 import torchvision.transforms.functional as VF
 
@@ -151,3 +153,9 @@ def apply_connected_comp(init_mask: IntTensor, connectivity: Literal[4, 8] = 4) 
         init_mask[obj_mask_new] = obj_id  # Apply new mask
     
     return torch.from_numpy(init_mask).to(device, dtype=torch.int)
+
+
+def load_config(path: Path) -> Dict[str, Any]:
+    """Load a toml configuration file and return it as a dict."""
+    config = toml.load(path)
+    return config

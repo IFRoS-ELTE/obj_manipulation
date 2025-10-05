@@ -1,0 +1,27 @@
+
+# Instance segmentation module configuration parameters
+use_rrn = true
+use_open_close_morphology = true
+oc_morph_kernel_size = 9
+use_largest_connected_component = true
+lcc_connectivity = 4
+filter_small_clusters = true
+min_pixels_thresh = 500
+
+# DSN segmentation module parameters
+[dsn]
+feature_dim = 64
+min_pixels_thresh = 500
+[dsn.gms]
+num_seeds = 200
+max_iters = 10
+epsilon = 0.05
+sigma = 0.02
+subsample_factor = 5
+
+# RRN segmentation module parameters
+[rrn]
+feature_dim = 64
+crop_size = [224, 224]
+crop_pad_perc = 0.25
+foreground_thresh = 0.5
