@@ -1,0 +1,51 @@
+﻿<?xml version="1.0"?>
+<launch>
+            <include file='$(find agx_xarm_bringup)/launch/agx_ar_pose.launch' >
+            <arg name="camera_namespace" value="cam1"/>
+            <!--<arg name="serial_no" value="035422071503"/>-->
+            <!--<arg name="mark_topic" value="cam1_ar_mark_pose" />-->
+            <arg name="roll" value="0"/>
+            <arg name="pitch" value="-1.57"/>
+            <arg name="yaw" value="3.14"/>
+            <arg name="x" value="0.065"/>
+            <arg name="y" value="-0.015"/><!--0.03-->
+            <arg name="z" value="0.06"/>
+            <!--<arg name="x" value="0.0446414171704"/>
+            <arg name="y" value="0.053996778351"/>
+            <arg name="z" value="0.0600140964856"/>
+            <arg name="r_x" value="-0.000283027265062"/>
+            <arg name="r_y" value="-0.0682970373998"/>
+            <arg name="r_z" value="0.984025866108"/>
+            <arg name="r_w" value="0.164403556559"/>-->
+            <arg name="use_quaternion" value="false"/>
+	    <arg name="parent_link" value="link6"/>
+        </include>
+
+       <!-- <include file='$(find agx_xarm_bringup)/launch/agx_ar_pose.launch'>
+            <arg name="camera_namespace" value="cam2"/>
+            <arg name="x" value="0"/>
+            <arg name="y" value="0.20"/>
+            <arg name="z" value="0.71"/>-->
+            <!--<arg name="roll" value="-1.55559"/>
+            <arg name="pitch" value="0.169678"/>
+            <arg name="yaw" value="-2.94026"/>-->
+           <!-- <arg name="roll" value="-1.57"/>
+            <arg name="pitch" value="0"/>
+            <arg name="yaw" value="0"/>
+
+            <arg name="x" value="-0.158256684291"/>
+            <arg name="y" value="-0.171367445838"/>
+            <arg name="z" value="0.771517047879"/>
+            <arg name="r_x" value="-0.0101994345492"/>
+            <arg name="r_y" value="0.701714650975"/>
+            <arg name="r_z" value="-0.700329629953"/>
+            <arg name="r_w" value="0.130502603621"/>
+            <arg name="parent_link" value="base_link"/>
+            <arg name="serial_no" value="049222071677"/>
+            <arg name="mark_topic" value="cam2_ar_mark_pose" />
+            <arg name="use_quaternion" value="true"/>
+        </include>-->
+
+        <node pkg='mark_listenner' type='mark_listenner' name='mark_listenner' output="screen"></node>
+
+</launch>

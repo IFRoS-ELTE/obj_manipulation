@@ -1,0 +1,5 @@
+<?xml version='1'?>
+<launch>
+	<node pkg="agx_xarm_pick" type="agx_xarm_pick" name="agx_xarm_pick" output="screen" />
+</launch>
+ 
