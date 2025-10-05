@@ -1,2 +1,7 @@
 .vscode/
 .idea/
+
+*.exe
+*.out
+*.bin
+*.elf

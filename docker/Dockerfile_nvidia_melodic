@@ -2,7 +2,7 @@
 FROM nvidia/cudagl:10.1-base-ubuntu18.04 
 # Minimal setup
 RUN apt-get update \
- && apt-get install -y locales build-essential cmake git lsb-release
+    && apt-get install -y locales build-essential cmake git lsb-release
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dpkg-reconfigure locales
 
@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-melodic-moveit \
     && rm -rf /var/lib/apt/lists/*
 RUN rosdep init \
- && rosdep fix-permissions \
- && rosdep update
+    && rosdep fix-permissions \
+    && rosdep update
 RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 
 # Copy entrypoint script

@@ -68,6 +68,9 @@ roslaunch obj_manipulation scout_xarm_moveit.launch
 # With Gazebo simulation
 roslaunch obj_manipulation scout_xarm_moveit.launch gazebo:=true
 
+# With GPU Gazebo simulation
+__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia roslaunch obj_manipulation scout_xarm_moveit.launch gazebo:=true
+
 # # With joint state publisher GUI
 # roslaunch obj_manipulation scout_xarm_moveit.launch use_gui:=true
 
