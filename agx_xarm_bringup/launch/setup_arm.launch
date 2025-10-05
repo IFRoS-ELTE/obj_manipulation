@@ -1,0 +1,11 @@
+<?xml version='1'?>
+<launch>
+	<node pkg="dh_gripper_driver" type="dh_gripper_joint_state" name="dh_gripper_state" />
+	<arg name="robot_ip" default="192.168.1.219" />
+        <include file="$(find scout_xarm_moveit_config)/launch/realMove_exec.launch">
+		<arg name="robot_ip" value="$(arg robot_ip)"/>
+	</include>
+	
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+</launch>
+ 
