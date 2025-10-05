@@ -4,3 +4,4 @@ torchvision
 numpy
 matplotlib
 opencv-python
+toml

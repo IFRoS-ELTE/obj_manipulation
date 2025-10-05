@@ -60,7 +60,7 @@ class InstanceSegmentationDSN(InstanceSegmentationBase):
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.dsn = DepthSeedingNetwork(in_channels=3, feature_dim=config["feature_dim"])
-        self.gms = GaussianMeanShift(**config["gms_config"])
+        self.gms = GaussianMeanShift(**config["gms"])
         self.dsn.to(self.device)
 
         # Store commonly used config entries to reduce dict look-ups
@@ -161,7 +161,7 @@ class InstanceSegmentationRRN(InstanceSegmentationBase):
         self.rrn.to(self.device)
 
         # Store commonly used config entries to reduce dict look-ups
-        self.crop_size = config.get("crop_size", (224, 224))
+        self.crop_size = tuple(config.get("crop_size", (224, 224)))
         self.crop_pad_perc = config.get("crop_pad_perc", 0.25)
         self.foreground_thresh = config.get("foreground_thresh", 0.5)
     
