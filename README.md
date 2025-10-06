@@ -84,6 +84,26 @@ source /catkin_ws/devel/setup.bash
 python src/obj_manipulation/scripts/xarm_move.py
 ```
 
+## On Real Robot
+```bash
+roslaunch agx_xarm_bringup scout_xarm_moveit.launch use_real_hardware:=true
+```
+## On local machine
+```bash
+source devel/setup.bash
+export ROS_MASTER_URI=http://192.168.1.102:11311  # robot IP
+export ROS_IP=<local machine ip>
+```
+ensure roscore is visible:
+```bash
+rostopic list
+```
+launch python test script:
+```bash 
+python src/obj_manipulation/scripts/xarm_move.py
+```
+
+
 High-level flow:
 ```
 Start
