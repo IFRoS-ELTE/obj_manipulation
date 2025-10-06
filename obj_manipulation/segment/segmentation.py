@@ -19,7 +19,7 @@ from obj_manipulation.segment.utils import (
 )
 
 if TYPE_CHECKING:
-    from torch import FloatTensor, IntTensor
+    from torch import BoolTensor, FloatTensor, IntTensor
 
 
 # Code adapted from https://github.com/chrisdxie/uois
@@ -83,7 +83,7 @@ class InstanceSegmentationDSN(InstanceSegmentationBase):
         fg_logits, center_offsets = fg_logits[0], center_offsets[0]
 
         # Get foreground mask
-        fg_mask = torch.argmax(fg_logits, dim=1)  # Shape (H, W)
+        fg_mask = torch.argmax(fg_logits, dim=0)  # Shape (H, W)
 
         # Run GMS clustering algorithm
         cluster_img = self._cluster(
@@ -110,7 +110,7 @@ class InstanceSegmentationDSN(InstanceSegmentationBase):
         self,
         xyz_img: FloatTensor,
         offsets: FloatTensor,
-        fg_mask: IntTensor,
+        fg_mask: BoolTensor,
     ) -> IntTensor:
         """Run Gaussian mean shift algorithm on predicted 3D centers.
         
@@ -122,7 +122,7 @@ class InstanceSegmentationDSN(InstanceSegmentationBase):
         Returns:
             [H x W] int tensor of cluster labels for each pixel.
         """
-        clustered_img = torch.zeros_like(fg_mask)
+        clustered_img = torch.zeros_like(fg_mask, dtype=torch.int)
         if torch.sum(fg_mask) == 0:  # No foreground pixels to cluster
             return clustered_img
 
@@ -254,11 +254,11 @@ class InstanceSegmentationRRN(InstanceSegmentationBase):
             # Determine padding and bbox boundaries
             x_padding = torch.round((x_max - x_min) * self.crop_pad_perc).int()
             y_padding = torch.round((y_max - y_min) * self.crop_pad_perc).int()
-            x_min = torch.maximum(x_min - x_padding, 0)
-            y_min = torch.maximum(y_min - y_padding, 0)
-            x_max = torch.minimum(x_max + x_padding, width - 1)
-            y_max = torch.minimum(y_max + y_padding, height - 1)
-            bboxes[index] = torch.stack([x_min, y_min, x_max, y_max], dim=0).int()
+            x_min = torch.maximum(x_min - x_padding, torch.tensor(0)).int()
+            y_min = torch.maximum(y_min - y_padding, torch.tensor(0)).int()
+            x_max = torch.minimum(x_max + x_padding, torch.tensor(width - 1)).int()
+            y_max = torch.minimum(y_max + y_padding, torch.tensor(height - 1)).int()
+            bboxes[index] = torch.stack([x_min, y_min, x_max, y_max], dim=0)
 
             # Crop rgb image and object mask
             rgb_crop = rgb_img[:, y_min: y_max + 1, x_min: x_max + 1]

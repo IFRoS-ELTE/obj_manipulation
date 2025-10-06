@@ -15,75 +15,71 @@ if TYPE_CHECKING:
 
 
 # Code adapted from https://github.com/chrisdxie/uois
-def depth_map_to_xyz(
-    depth: FloatTensor,
-    intrinsics: FloatTensor
-) -> FloatTensor:
-    """
-    Convert a depth map to 3D XYZ coordinates in the camera frame.
-    
-    Args:
-        depth: [H x W] tensor containing depth values in meters.
-        intrinsics: [3, 3] tensor containing the camera intrinsic matrix:
-                    [[fx, 0, cx],
-                    [0, fy, cy],
-                    [0,  0,  1]]
-    
-    Returns:
-        [3 x H x W] tensor of 3D coordinates (X, Y, Z) in the camera frame.
-    """
-    device = depth.device
-    height, width = depth.shape
-    fx, fy = intrinsics[0, 0], intrinsics[1, 1]
-    cx, cy = intrinsics[0, 2], intrinsics[1, 2]
-
-    # Create meshgrid of pixel coordinates
-    u = torch.arange(width, device=device)
-    v = torch.arange(height, device=device)
-    uu, vv = torch.meshgrid(u, v, indexing='xy')  # [H, W]
-    
-    # Compute X, Y, Z coordinates
-    Z = depth
-    X = (uu - cx) * Z / fx
-    Y = (vv - cy) * Z / fy
-
-    # Stack into (3, H, W)
-    return torch.stack((X, Y, Z), dim=0)
-
-
-def standardize_image(rgb_img: ndarray, device: torch.device) -> FloatTensor:
+def standardize_image_rgb(rgb_img: ndarray, device: torch.device) -> FloatTensor:
     """Converts input array [0, 255] to tensor [0, 1] then normalizes with fixed mean and std.
+    Image is resized using a center-crop to a fixed size (480, 640) expected by segmentation module.
     
     Args:
         rgb_img: [H x W x 3] array of rgb image data of type uint8 from [0, 255].
         device: Torch device to move transformed image to.
     
     Returns:
-        [3 x H x W] tensor of standardized rgb image data of type float.
+        [3 x 480 x 640] tensor of standardized rgb image data of type float.
     """
+    size = (480, 640)
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
     rgb_img = VF.to_tensor(rgb_img).to(device=device)
+    rgb_img = VF.center_crop(rgb_img, output_size=size)
     rgb_img = VF.normalize(rgb_img, mean, std)
     return rgb_img
 
 
-def unstandardize_image(rgb_img: FloatTensor) -> ndarray:
-    """Convert normalized tensor image back to uint8 array ranging [0, 255].
-    Inverse of standardize_image()
-
+def standardize_image_xyz(xyz_img: ndarray, device: torch.device) -> FloatTensor:
+    """Converts input array to tensor with fixed size (480, 640) used by segmentation module.
+    
     Args:
-        rgb_img: [3 x H x W] tensor of standardized rgb image data of type float.
+        xyz_img: [H x W x 3] array of xyz depth image.
+        device: Torch device to move transformed image to.
     
     Returns:
-        [H x W x 3] array of rgb image data of type uint8 from [0, 255].
+        [3 x 480 x 640] tensor of standardized (cropped) xyz depth image.
+    """
+    size = (480, 640)
+    xyz_img = VF.to_tensor(xyz_img).to(device=device)
+    xyz_img = VF.center_crop(xyz_img, output_size=size)
+    return xyz_img
+
+
+def unstandardize_image_rgb(rgb_img: FloatTensor) -> ndarray:
+    """Convert normalized tensor image back to uint8 array ranging [0, 255].
+    Inverse of standardize_image_rgb() except that size is not altered.
+
+    Args:
+        rgb_img: [3 x 480 x 640] tensor of standardized rgb image data of type float.
+    
+    Returns:
+        [480 x 640 x 3] array of rgb image data of type uint8 from [0, 255].
     """
     device = rgb_img.device
     mean = torch.tensor([0.485, 0.456, 0.406], device=device)
     std = torch.tensor([0.229, 0.224, 0.225], device=device)
-    rgb_img = (rgb_img * std[None, None, :] + mean[None, None, :])
+    rgb_img = (rgb_img * std[:, None, None] + mean[:, None, None])
     rgb_img = (rgb_img * 255.).byte()
     return rgb_img.permute(1, 2, 0).cpu().numpy()
+
+
+def unstandardize_image_xyz(xyz_img: FloatTensor) -> ndarray:
+    """Convert tensor of depth image back to NumPy array.
+    Inverse of standardize_image_xyz() except that size is not altered. 
+
+    Args:
+        xyz_img: [3 x 480 x 640] tensor of standardized (cropped) xyz depth image.
+    
+    Returns:
+        [480 x 640 x 3] array of xyz depth image.
+    """
+    return xyz_img.permute(1, 2, 0).cpu().numpy()
 
 
 def apply_open_close_morph(init_mask: IntTensor, kernel_size: int = 9) -> IntTensor:
@@ -114,7 +110,7 @@ def apply_open_close_morph(init_mask: IntTensor, kernel_size: int = 9) -> IntTen
             obj_mask_new.astype(np.uint8),
             cv2.MORPH_CLOSE,
             cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)),
-        )
+        ).astype(np.bool)
 
         # Update cluster image
         init_mask[obj_mask] = 0  # Undo old mask

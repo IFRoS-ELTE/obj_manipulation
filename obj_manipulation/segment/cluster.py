@@ -87,7 +87,7 @@ class MeanShift(ABC):
         
         # Sampling/Grouping
         n_clusters = torch.zeros(1, dtype=torch.int, device=device)
-        cluster_labels = torch.full(n, -1, dtype=torch.int, device=device)
+        cluster_labels = torch.full((n,), -1, dtype=torch.int, device=device)
         for i in range(n):
             if cluster_labels[i] == -1:
                 # Find all points close to it and label it the same
@@ -98,7 +98,7 @@ class MeanShift(ABC):
                 # If at least one component already has a label, then use the mode of the label
                 assigned_labels_mask = adjacent_labels != -1
                 if assigned_labels_mask.any():
-                    label = torch.mode(adjacent_labels[assigned_labels_mask])
+                    label = torch.mode(adjacent_labels[assigned_labels_mask])[0]
                 else:
                     label = n_clusters.clone()
                     n_clusters += 1  # Increment number of clusters
