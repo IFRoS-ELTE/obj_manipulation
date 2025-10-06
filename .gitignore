@@ -209,3 +209,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# PyTorch models
+*.pth
+*.pt
+
+# NumPy stored files
+*.npy
