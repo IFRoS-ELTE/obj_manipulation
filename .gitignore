@@ -209,3 +209,6 @@ __marimo__/
 # PyTorch models
 *.pth
 *.pt
+
+# NumPy stored files
+*.npy
