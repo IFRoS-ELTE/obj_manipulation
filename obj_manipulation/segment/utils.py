@@ -51,19 +51,19 @@ def depth_map_to_xyz(
     return torch.stack((X, Y, Z), dim=0)
 
 
-def standardize_image(rgb_img: ndarray) -> FloatTensor:
+def standardize_image(rgb_img: ndarray, device: torch.device) -> FloatTensor:
     """Converts input array [0, 255] to tensor [0, 1] then normalizes with fixed mean and std.
-    Note: The transformed image is always moved to the GPU.
     
     Args:
         rgb_img: [H x W x 3] array of rgb image data of type uint8 from [0, 255].
+        device: Torch device to move transformed image to.
     
     Returns:
         [3 x H x W] tensor of standardized rgb image data of type float.
     """
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
-    rgb_img = VF.to_tensor(rgb_img).cuda()
+    rgb_img = VF.to_tensor(rgb_img).to(device=device)
     rgb_img = VF.normalize(rgb_img, mean, std)
     return rgb_img
 
