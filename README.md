@@ -6,7 +6,7 @@
 The goal of this project is to enable a UR3 robotic arm to autonomously **detect, grasp, and place previously unseen rigid objects** into a basket. Using RGB-D perception, grasp planning, motion planning, and feedback control, the system aims to generalize across a wide variety of object shapes, sizes, and materials.  
 
 # Docker Setup
-This project uses Docker with NVIDIA GPU support for ROS1 Melodic development.
+This project uses Docker with NVIDIA GPU support for ROS1 Noetic development.
 
 ### Prerequisites
 - Docker with NVIDIA Container Toolkit installed
@@ -20,10 +20,10 @@ This project uses Docker with NVIDIA GPU support for ROS1 Melodic development.
    chmod +x ./docker/build_image.sh
    ./docker/build_image.sh
    ```
-   This creates a Docker image named `nvidia_melodic` with:
-   - Ubuntu 18.04 base
-   - NVIDIA CUDA 10.1 support
-   - ROS1 Melodic desktop full
+   This creates a Docker image named `robot` with:
+   - Ubuntu 20.04 base
+   - NVIDIA CUDA 11.4 support
+   - ROS1 Noetic desktop full
    - Build tools (gcc, cmake, etc.)
    - Python3 and ROS development tools
 
@@ -39,19 +39,21 @@ This project uses Docker with NVIDIA GPU support for ROS1 Melodic development.
    - Mounts your current project directory to `/catkin_ws/src/obj_manipulation`
    - Sets up GPU access for CUDA applications
    - Enables X11 forwarding for GUI applications
-   - Sources ROS Melodic environment
+   - Sources ROS Noetic environment
    - Builds the catkin workspace with `catkin_make`
    - Starts an interactive bash shell
-### Opening new terminal in same container
+
+### Opening another terminal in same container
    ```bash
    sudo docker ps
    sudo docker exec -it <container ID> bash
    ```
+
 ### Container Environment
 
 **Working Directory:** `/catkin_ws`  
 **Project Location:** `/catkin_ws/src/obj_manipulation`  
-**ROS Environment:** Automatically sourced from `/opt/ros/melodic/setup.bash`
+**ROS Environment:** Automatically sourced from `/opt/ros/noetic/setup.bash`
  
 ## Build workspace
 
@@ -119,6 +121,39 @@ Start
  │           └─ else → report failure
  └─ Stop, clear, shutdown
 ```
+
+## Unseen Object Instance Segmentation
+To use the instance segmentation module, the following steps must be executed:
+
+1. Create a `models` directory inside the segmentation module: 
+```bash
+cd /catkin_ws/src/obj_manipulation
+mkdir mkdir obj_manipulation/segment/models
+```
+
+2. Download the trained models' weights from [here](https://drive.google.com/drive/folders/1_rh8EcGW7P9Vo4pw2w09rKpbWrmR3CKu?usp=sharing) and place them inside the `models` directory.
+
+To test that the module works as expected, the following steps should be followed:
+
+1. Create an `examples` directory inside the segmentation tests directory:
+```bash
+cd /catkin_ws/src/obj_manipulation
+mkdir tests/segment/examples
+```
+
+2. Download the provided examples from [here](https://drive.google.com/drive/folders/1UYn42QL-Wj7qFGC36wFlUS30bvaxTsgK?usp=sharing) and place them inside the `examples` directory.
+
+3. Run the following test script for instance segmentation:
+```bash
+cd /catkin_ws/src/obj_manipulation
+python3 tests/segment/segmentation_test.py
+```
+
+The following figure represents a sample of the expected results:
+<p align="center">
+  <img src="images/InstanceSegmentation1.png" alt="Inst. Seg. Example 1" height="200"/>
+  <img src="images/InstanceSegmentation2.png" alt="Inst. Seg. Example 1" height="200"/>
+</p>
 
 ## Troubleshooting
 - If RViz/MoveIt cannot load gripper meshes like `package://dh_robotics_ag95_model/...`:
