@@ -24,8 +24,8 @@ class UNetEncoder(nn.Module):
         super().__init__()
         self.layer1 = ConvBlockx2(in_channels, feature_dim, feature_dim)
         self.layer2 = ConvBlockx2(feature_dim, feature_dim * 2, feature_dim)
-        self.layer3 = ConvBlock(feature_dim * 2, feature_dim * 4, feature_dim)
-        self.layer4 = ConvBlock(feature_dim * 4, feature_dim * 8, feature_dim)
+        self.layer3 = ConvBlockx2(feature_dim * 2, feature_dim * 4, feature_dim)
+        self.layer4 = ConvBlockx2(feature_dim * 4, feature_dim * 8, feature_dim)
         self.last_layer = ConvBlock(feature_dim * 8, feature_dim * 16, feature_dim)
 
     def forward(self, images: FloatTensor) -> Tuple[FloatTensor, List[FloatTensor]]:
@@ -87,9 +87,9 @@ class UNetESPEncoder(nn.Module):
         self.layer1 = ConvBlockx2(in_channels, feature_dim, feature_dim)
         self.layer2 = ConvBlockx2(feature_dim, feature_dim * 2, feature_dim)
         self.layer3a = ConvBlock(feature_dim * 2, feature_dim * 4, feature_dim)
-        self.layer3b = ESPModule(feature_dim * 4, feature_dim * 4, feature_dim)
+        self.layer3b = ESPModule(feature_dim * 4, feature_dim)
         self.layer4a = ConvBlock(feature_dim * 4, feature_dim * 8, feature_dim)
-        self.layer4b = ESPModule(feature_dim * 8, feature_dim * 8, feature_dim)
+        self.layer4b = ESPModule(feature_dim * 8, feature_dim)
         self.last_layer = ConvBlock(feature_dim * 8, feature_dim * 16, feature_dim)
 
     def forward(self, images: FloatTensor) -> Tuple[FloatTensor, List[FloatTensor]]:
@@ -111,7 +111,7 @@ class UNetESPDecoder(nn.Module):
     def __init__(self, feature_dim):
         super().__init__()
         # Fusion layer
-        self.fuse_layer = ESPModule(feature_dim * 16, feature_dim * 16, feature_dim, kernel_size=1)
+        self.fuse_layer = ESPModule(feature_dim * 16, feature_dim, kernel_size=1)
 
         # Decoding
         self.layer1 = UpsampleConcatConvBlock(feature_dim * 16, feature_dim * 8, feature_dim)

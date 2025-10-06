@@ -60,8 +60,12 @@ class DepthSeedingNetwork(nn.Module):
     def load(self, path: Path) -> None:
         path /= "DSN.pth"
         assert path.exists(), f"Path {path} does not exist."
-        checkpoint = torch.load(path, weights_only=True)
-        self.load_state_dict(checkpoint["model"])
+        state_dict = torch.load(path, weights_only=True)["model"]
+        state_dict = {
+            ('.'.join(key.split('.')[1:]) if key.split('.')[0] == "module" else key):value
+            for key, value in state_dict.items()
+        }
+        self.load_state_dict(state_dict)
 
 
 class RegionRefinementNetwork(nn.Module):
@@ -99,5 +103,9 @@ class RegionRefinementNetwork(nn.Module):
     def load(self, path: Path) -> None:
         path /= "RRN.pth"
         assert path.exists(), f"Path {path} does not exist."
-        checkpoint = torch.load(path, weights_only=True)
-        self.load_state_dict(checkpoint["model"])
+        state_dict = torch.load(path, weights_only=True)["model"]
+        state_dict = {
+            ('.'.join(key.split('.')[1:]) if key.split('.')[0] == "module" else key):value
+            for key, value in state_dict.items()
+        }
+        self.load_state_dict(state_dict)
