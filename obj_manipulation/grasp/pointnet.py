@@ -172,9 +172,11 @@ class PointNetFeaturePropagation(nn.Module):
     """PointNet feature propagation module that operates on collections of points. This is
     different from abstraction set modules that operate on collections of point groups.
     
-    Features from sampled point cloud are interpolated according to the proximity of their sample
-    points to the original points in the input point cloud. Then, these interpolated features are
-    passed through the MLP network to produce new features. 
+    Features from the sampled point cloud, that are subset of the input point cloud of the previous
+    layer, are interpolated to upsample them to the whole input point cloud. Each point uses its 3
+    nearest neighbors in the sampled point cloud for interpolation. Then, these interpolated
+    features are concatenated with the features of the input point cloud if given and passed
+    through a 1D MLP network to produce new features.
     """
     def __init__(self, in_channel: int, mlp: List[int]):
         super().__init__()
