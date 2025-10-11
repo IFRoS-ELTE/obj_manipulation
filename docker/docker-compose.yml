@@ -1,0 +1,34 @@
+
+services:
+
+  melodic:
+    build:
+      context: .                   
+      dockerfile: melodic/Dockerfile_nvidia_melodic
+    image: melodic_moveit:latest
+    container_name: melodic
+    command: /entrypoint.sh
+    tty: true
+    volumes:
+      - ../:/catkin_ws/src:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    network_mode: host
+
+  noetic:
+    build:
+      context: .
+      dockerfile: noetic/Dockerfile_nvidia_noetic
+    image: noetic_py3:latest
+    container_name: noetic
+    command: /entrypoint.sh
+    tty: true
+    volumes:
+      - ../:/catkin_ws/src:rw
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    network_mode: host

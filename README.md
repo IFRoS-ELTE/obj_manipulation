@@ -2,6 +2,39 @@
 # Object Manipulation with XArm6 on Scout
 **Team:** Muhammad Faran Akram, Sherif Sameh, Pravin Oli, Jamin Rahman Jim  
 
+## Dual-container ROS1 (Melodic + Noetic) setup
+
+Run Melodic (MoveIt + drivers, Python 2) and Noetic (Python 3 workspace) side-by-side using Docker with shared ROS1 networking.
+
+### Build images
+```bash
+cd docker
+./build_image.sh
+```
+
+### Run a container
+Use a single script with a distro argument:
+```bash
+cd docker
+# Melodic (ROS master + MoveIt/drivers)
+./deploy_image.sh melodic
+
+# Noetic (Python 3 workspace)
+./deploy_image.sh noetic
+```
+
+Inside the Melodic container, start roscore or your MoveIt/driver launch. In the Noetic container, `rostopic list` should show topics from Melodic.
+
+Both containers use host networking and share `ROS_MASTER_URI` (default `http://127.0.0.1:11311`). Override if needed:
+```bash
+ROS_MASTER_URI=http://<host_ip>:11311 ./deploy_image.sh noetic
+```
+
+Notes:
+- Start Melodic roscore before Noetic tools.
+- Message/service definitions must match across Melodic/Noetic.
+- GUI/RViz supported via `--gpus all` and X11 mount.
+
 ## Objective  
 The goal of this project is to enable a UR3 robotic arm to autonomously **detect, grasp, and place previously unseen rigid objects** into a basket. Using RGB-D perception, grasp planning, motion planning, and feedback control, the system aims to generalize across a wide variety of object shapes, sizes, and materials.  
 
@@ -48,6 +81,48 @@ This project uses Docker with NVIDIA GPU support for ROS1 Noetic development.
    sudo docker ps
    sudo docker exec -it <container ID> bash
    ```
+
+### Docker Compose Setup
+
+Run the dual-container setup for object manipulation:
+
+```bash
+cd docker
+docker-compose up --build
+```
+
+**Typical workflow for object manipulation:**
+```bash
+# Start containers
+cd docker/
+docker-compose up -d
+
+# or from root:
+docker compose -f docker/docker-compose.yml up -d
+
+
+# Terminal 1: Launch robot simulation
+docker-compose exec melodic bash #melodic is name of container
+
+# Terminal 2: Run segmentation and manipulation code
+docker-compose exec noetic bash #noetic is name of container 
+```
+
+**Container usage:**
+- **Melodic container**: Scout XArm6 robot, MoveIt planning, Gazebo simulation(#TODO))
+- **Noetic container**: Instance segmentation, Python 3 manipulation scripts, object detection
+
+**Quick commands:**
+```bash
+# Access robot container
+docker-compose exec melodic bash
+
+# Access manipulation code container  
+docker-compose exec noetic bash
+
+# Stop everything
+docker-compose down
+```
 
 ### Container Environment
 
