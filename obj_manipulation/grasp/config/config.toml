@@ -1,0 +1,21 @@
+
+# Grasp estimator module configuration parameters
+
+# Gripper physical parameters
+gripper_depth = 0.1034          # Distance from TCP to gripper fingers' center point.
+gripper_width = 0.08            # Distance between gripper fingers when fully opened.
+gripper_extra_opening = 0.005   # Extra margin added to predicted gripper's width values.
+
+# Input point cloud processing parameter 
+n_input_points = 20_000     # Size of point cloud used for grasp prediction.
+convert_cam_coords = true   # Convert from OpenCV to internal camera coordinates (x left, y up, z front).
+forward_passes = 1          # Number of simulateneous forward passes performed on same input point cloud.
+min_depth = 0.2             # Minimum allowed depth (Z) values in input point cloud.
+max_depth = 1.8             # Maximum allowed depth (Z) values in input point cloud.
+med_thresh = 0.4            # Maximum allowed absolute distance from point cloud median value. 
+
+# Grasp prediction filtering parameters
+grasp_conf_thresh = 0.15        # Minimum threshold for grasp confidence (success) scores.
+grasp_downsample_min = 20       # Minimum number of grasps to maintain when downsampling.
+grasp_downsample_factor = 0.25  # Factor for downsampling grasps.
+filter_grasps = true            # Filter grasps so they only contain grasp within the object's point cloud.
