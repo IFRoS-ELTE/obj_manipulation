@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Dict
 
 import torch
@@ -20,10 +21,10 @@ if TYPE_CHECKING:
 class ContactGraspNet(nn.Module):
     """Contact-GraspNet based on the PointNet++ architecture."""
 
-    def __init__(self):
+    def __init__(self, gripper_depth: float = 0.1034):
         super().__init__()
         self.bin_vals = self._get_bins_vals()
-        self.gripper_depth = 0.1034  # TODO: Update based on actual gripper
+        self.gripper_depth = gripper_depth
 
         # Initialize PointNet for feature extraction
         pn_out_channels = self._build_pointnet()
@@ -62,6 +63,99 @@ class ContactGraspNet(nn.Module):
             nn.Dropout(0.5),
             nn.Conv1d(128, 1, kernel_size=1),
         )
+
+    def forward(self, xyz_pc: FloatTensor) -> Dict[str, FloatTensor]:
+        """Predict grasp points from input point cloud.
+        build_6d_grasp
+        Args:
+            xyz_pc: [B x N x 3] tensor of batched full 3-dim point clouds.
+        
+        Returns:
+            dict
+            - "pred_grasps": [B x N x 4 x 4] tensor of batched homogeneous matrices representing
+            grasp poses in the same coordinate system as input point clouds.
+            - "pred_scores": [B x N x 1] tensor of batched grasp success probabilities.
+            - "pred_points": [B x N x 3] tensor of batched contact points used for grasp predictions.
+            - "pred_widths": [B x N x 1] tensor of batched grasp widths for grasp predictions.
+        """
+        # Convert inputs from channel-last to format channel-first
+        xyz_pc = xyz_pc.permute(0, 2, 1)
+
+        l0_xyz = xyz_pc[:, :3, :]
+        l0_points = l0_xyz.clone()
+
+        # -- PointNet Backbone -- #
+        # Set Abstraction Layers
+        l1_xyz, l1_points = self.sa1(l0_xyz, l0_points)
+        l2_xyz, l2_points = self.sa2(l1_xyz, l1_points)
+        l3_xyz, l3_points = self.sa3(l2_xyz, l2_points)
+        l4_xyz, l4_points = self.sa4(l3_xyz, l3_points)
+
+        # Feature Propagation Layers
+        l3_points = self.fp3(l3_xyz, l4_xyz, l3_points, l4_points)
+        l2_points = self.fp2(l2_xyz, l3_xyz, l2_points, l3_points)
+        l1_points = self.fp1(l1_xyz, l2_xyz, l1_points, l2_points)
+
+        l0_points = l1_points
+        pred_points = l1_xyz
+
+        # -- Output Heads -- #
+        # Grasp Direction Head + Normalization
+        grasp_dir = self.grasp_dir_head(l0_points)
+        grasp_dir = F.normalize(grasp_dir, p=2, dim=1)
+
+        # Grasp Approach Head + Gram-Schmidt Orthonormalization
+        approach_dir = self.grasp_approach_head(l0_points)
+        dot_product = torch.sum(approach_dir * grasp_dir, dim=1, keepdim=True)
+        projection = dot_product * grasp_dir
+        approach_dir = F.normalize(approach_dir - projection, p=2, dim=1)
+
+        # Grasp Width Head (Logits for the 10 bins)
+        grasp_width_logits = self.grasp_offset_head(l0_points)
+
+        # Binary Segmentation Head
+        binary_seg = self.binary_seg_head(l0_points)
+
+        # -- Construct Output -- #
+        # Get grasp width
+        bin_vals = self.bin_vals.to(device=xyz_pc.device)
+        grasp_width_indices = torch.argmax(grasp_width_logits, dim=1, keepdim=True)
+        grasp_width = bin_vals[grasp_width_indices]  # Shape = (B, 1, N)
+        
+        # Get 6 DoF grasp pose (as homogeneous matrices)
+        pred_grasps = self._build_6d_grasp(
+            approach_dir.permute(0, 2, 1),
+            grasp_dir.permute(0, 2, 1),
+            pred_points.permute(0, 2, 1),
+            grasp_width.permute(0, 2, 1),
+        )  # Shape = (B, N, 4, 4)
+
+        # Get success pred scores
+        pred_scores = torch.sigmoid(binary_seg).permute(0, 2, 1)
+
+        # Get pred points
+        pred_points = pred_points.permute(0, 2, 1)
+
+        # Combine outputs into dictionary
+        grasp_width = grasp_width.permute(0, 2, 1)
+        pred = {
+            "pred_grasps": pred_grasps,
+            "pred_scores": pred_scores,
+            "pred_points": pred_points,
+            "pred_widths": grasp_width,
+        }
+        return pred
+    
+    def save(self, path: Path) -> None:
+        assert path.exists(), f"Path {path} does not exist."
+        assert path.is_dir(), f"Path {path} is not a directory."
+        torch.save(self.state_dict(), path / "CGN.pt")
+    
+    def load(self, path: Path) -> None:
+        path /= "CGN.pt"
+        assert path.exists(), f"Path {path} does not exist."
+        state_dict = torch.load(path, weights_only=True)
+        self.load_state_dict(state_dict)
     
     def _get_bins_vals(self) -> FloatTensor:
         """Creates bin values for grasping widths according to set opening bounds."""
@@ -160,86 +254,7 @@ class ContactGraspNet(nn.Module):
         fp1_out_channels = 256
         return fp1_out_channels
 
-    def forward(self, xyz_pc: FloatTensor) -> Dict[str, FloatTensor]:
-        """Predict grasp points from input point cloud.
-        
-        Args:
-            xyz_pc: [B x N x 3] tensor of batched full 3-dim point clouds.
-        
-        Returns:
-            dict
-            - "pred_grasps": [B x N x 4 x 4] tensor of batched homogeneous matrices representing
-            grasp poses in the same coordinate system as input point clouds.
-            - "pred_scores": [B x N x 1] tensor of batched grasp success probabilities.
-            - "pred_points": [B x N x 3] tensor of batched contact points used for grasp predictions.
-        """
-        # Convert inputs from channel-last to format channel-first
-        xyz_pc = xyz_pc.permute(0, 2, 1)
-
-        l0_xyz = xyz_pc[:, :3, :]
-        l0_points = l0_xyz.clone()
-
-        # -- PointNet Backbone -- #
-        # Set Abstraction Layers
-        l1_xyz, l1_points = self.sa1(l0_xyz, l0_points)
-        l2_xyz, l2_points = self.sa2(l1_xyz, l1_points)
-        l3_xyz, l3_points = self.sa3(l2_xyz, l2_points)
-        l4_xyz, l4_points = self.sa4(l3_xyz, l3_points)
-
-        # Feature Propagation Layers
-        l3_points = self.fp3(l3_xyz, l4_xyz, l3_points, l4_points)
-        l2_points = self.fp2(l2_xyz, l3_xyz, l2_points, l3_points)
-        l1_points = self.fp1(l1_xyz, l2_xyz, l1_points, l2_points)
-
-        l0_points = l1_points
-        pred_points = l1_xyz
-
-        # -- Output Heads -- #
-        # Grasp Direction Head + Normalization
-        grasp_dir = self.grasp_dir_head(l0_points)
-        grasp_dir = F.normalize(grasp_dir, p=2, dim=1)
-
-        # Grasp Approach Head + Gram-Schmidt Orthonormalization
-        approach_dir = self.grasp_approach_head(l0_points)
-        dot_product = torch.sum(approach_dir * grasp_dir, dim=1, keepdim=True)
-        projection = dot_product * grasp_dir
-        approach_dir = F.normalize(approach_dir - projection, p=2, dim=1)
-
-        # Grasp Width Head (Logits for the 10 bins)
-        grasp_width_logits = self.grasp_offset_head(l0_points)
-
-        # Binary Segmentation Head
-        binary_seg = self.binary_seg_head(l0_points)
-
-        # -- Construct Output -- #
-        # Get grasp width
-        bin_vals = self.bin_vals.to(device=xyz_pc.device)
-        grasp_width_indices = torch.argmax(grasp_width_logits, dim=1, keepdim=True)
-        grasp_width = bin_vals[grasp_width_indices]  # Shape = (B, 1, N)
-        
-        # Get 6 DoF grasp pose (as homogeneous matrices)
-        pred_grasps = self.build_6d_grasp(
-            approach_dir.permute(0, 2, 1),
-            grasp_dir.permute(0, 2, 1),
-            pred_points.permute(0, 2, 1),
-            grasp_width.permute(0, 2, 1),
-        )  # Shape = (B, N, 4, 4)
-
-        # Get success pred scores
-        pred_scores = torch.sigmoid(binary_seg).permute(0, 2, 1)
-
-        # Get pred points
-        pred_points = pred_points.permute(0, 2, 1)
-
-        # Combine outputs into dictionary
-        pred = {
-            "pred_grasps": pred_grasps,
-            "pred_scores": pred_scores,
-            "pred_points": pred_points,
-        }
-        return pred
-
-    def build_6d_grasp(
+    def _build_6d_grasp(
         self,
         approach_dir: FloatTensor,
         grasp_dir: FloatTensor,
