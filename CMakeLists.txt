@@ -7,14 +7,34 @@ project(obj_manipulation)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  moveit_commander
-  moveit_msgs
-  geometry_msgs
-)
+# Detect ROS distribution from environment and set dependencies accordingly
+if("$ENV{ROS_DISTRO}" STREQUAL "melodic")
+  # Melodic: Include MoveIt dependencies
+  find_package(catkin REQUIRED COMPONENTS
+    roscpp
+    rospy
+    std_msgs
+    moveit_commander
+    moveit_msgs
+    geometry_msgs
+  )
+else()
+  # Noetic or other: Build without MoveIt
+  find_package(catkin REQUIRED COMPONENTS
+    rospy
+    std_msgs
+    geometry_msgs
+  )
+endif()
+
+# find_package(catkin REQUIRED COMPONENTS
+#   roscpp
+#   rospy
+#   std_msgs
+#   moveit_commander
+#   moveit_msgs
+#   geometry_msgs
+# )
 
 
 # Symlink nested packages in obj_manipulation to src/
