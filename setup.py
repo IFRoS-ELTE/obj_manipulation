@@ -6,7 +6,7 @@ package_name = 'obj_manipulation'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=find_packages(include=[package_name, f'{package_name}.*']),
+    packages=find_packages(include=[package_name, '{}.*'.format(package_name)]),
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='',
