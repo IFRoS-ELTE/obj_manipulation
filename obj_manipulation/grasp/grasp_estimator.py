@@ -14,7 +14,7 @@ from obj_manipulation.grasp.utils import (
     oversample_point_cloud,
     reject_median_outliers,
 )
-from obj_manipulation.grasp.utils_pointnet import (
+from obj_manipulation.grasp.utils.utils_pointnet import (
     get_squared_distances,
     sample_farthest_points,
 )

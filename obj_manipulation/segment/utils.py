@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Literal
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 import toml
 import torch
@@ -155,3 +156,20 @@ def load_config(path: Path) -> Dict[str, Any]:
     """Load a toml configuration file and return it as a dict."""
     config = toml.load(path)
     return config
+
+
+def visualize_rgb_segmap(rgb: ndarray, segmap: ndarray) -> None:
+    """Overlay rgb image with segmentation and visualize using Matplotlib.
+
+    Args:
+        rbg: [H x W x 3] uint8 array containing the image rgb intensities.
+        segmap: [H x W] int containing the object labels of each pixel in image.
+    """
+    if rgb is not None:
+        plt.imshow(rgb)
+    if segmap is not None:
+        cmap = plt.get_cmap('rainbow')
+        cmap.set_under(alpha=0.0)
+        plt.imshow(segmap, cmap=cmap, alpha=0.5, vmin=0.0001)
+    plt.tight_layout()
+    plt.show()
