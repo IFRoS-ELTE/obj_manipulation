@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from obj_manipulation.grasp.utils_pointnet import (
+from obj_manipulation.grasp.utils.utils_pointnet import (
     get_squared_distances,
     group_points,
     index_points,
