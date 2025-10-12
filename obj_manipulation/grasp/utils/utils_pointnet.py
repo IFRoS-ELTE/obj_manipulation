@@ -19,7 +19,7 @@ def get_squared_distances(src: FloatTensor, dst: FloatTensor) -> FloatTensor:
     Returns:
         [B x N x M] tensor containing point-wise squared Euclidean distances for all points.
     """
-    return torch.sum((src.unsqueeze(2) - dst.unsqueeze(1) ** 2), dim=3)
+    return torch.sum((src.unsqueeze(2) - dst.unsqueeze(1)) ** 2, dim=3)
 
 
 def index_points(points: FloatTensor, idx: IntTensor) -> FloatTensor:
@@ -27,15 +27,31 @@ def index_points(points: FloatTensor, idx: IntTensor) -> FloatTensor:
     
     Args:
         points: [B x N x C] tensor of batched C-dim input point groups.
-        idx: [B x S] or [B x S x M] int tensor of sample index data.
+        idx: [B x S] int tensor of sample index data.
     
     Return:
-        [B x S x C] or [B x S x M x C] tensor of indexed points data.
+        [B x S x C] tensor of indexed points data.
     """
-    indices = idx.unsqueeze(-1).expand_as(points)  # Repeat along last dimension
+    indices = idx.unsqueeze(-1).expand(-1, -1, points.shape[-1])  # Repeat along last dimension
+    return torch.gather(points, dim=1, index=indices.long())
+
+
+def index_points_3d(points: FloatTensor, idx: IntTensor) -> FloatTensor:
+    """Index points at specified indices and return subset of chosen points.
+    
+    Unlike index_points(), the idx tensor for this function is 3D. 
+    
+    Args:
+        points: [B x N x C] tensor of batched C-dim input point groups.
+        idx: [B x S x M] int tensor of sample index data.
+    
+    Return:
+        [B x S x M x C] tensor of indexed points data.
+    """
+    indices = idx.unsqueeze(-1).expand(-1, -1, -1, points.shape[-1])  # Repeat along last dimension
     shape = indices.shape
-    indices = indices.view(indices.shape[0], -1, indices.shape[-1])
-    return torch.gather(points, dim=1, index=indices).view(shape)
+    indices = indices.flatten(1, 2)
+    return torch.gather(points, dim=1, index=indices.long()).view(shape)
 
 
 def sample_farthest_points(xyz_pc: FloatTensor, n_points: int) -> IntTensor:
@@ -114,6 +130,7 @@ def group_points(
     points: Optional[FloatTensor],
     radius: float,
     max_samples: int,
+    concat_points_last: bool = True,
 ) -> FloatTensor:
     """Collect point groups from the local neighborhoods of given query point clouds.
     
@@ -123,20 +140,26 @@ def group_points(
         points: [B x N x D] tensor of batched D-dim input point groups.
         radius: Radius of local neighborhood to collect points from.
         max_samples: Maximum number of points to sample from each local region.
+        concat_points_last: Concatenate points to sampled point groups instead of vice versa.
     
     Returns:
         [B x S x max_samples x (C or C+D)] tensor of sampled point groups around each query.
     """
     # Collect point groups from query points' local neighborhoods
     group_idx = query_ball_point(xyz_pc, xyz_query_pc, radius, max_samples)  # Shape = (B, S, max_samples)
-    xyz_query_group_pc = index_points(xyz_pc, group_idx)  # Shape = (B, S, max_samples, C)
+    xyz_query_group_pc = index_points_3d(xyz_pc, group_idx)  # Shape = (B, S, max_samples, C)
     xyz_query_group_pc -= xyz_query_pc.unsqueeze(dim=2)  # Convert to relative coordinates to centroids 
     if points is None:
         return xyz_query_group_pc
     
     # If input points are given, combine them with the 3D query group points
-    grouped_points = index_points(points, group_idx)  # Shape = (B, S, max_samples, D)
-    new_points = torch.cat([xyz_query_group_pc, grouped_points], dim=-1)  # Shape = (B, S, max_samples, C+D)
+    grouped_points = index_points_3d(points, group_idx)  # Shape = (B, S, max_samples, D)
+    if concat_points_last:
+        new_points = torch.cat([xyz_query_group_pc, grouped_points], dim=-1)  # Shape = (B, S, max_samples, C+D)
+    else:
+        # This order is needed because the original implementation used this for set abstractions
+        # msg layers while the normal order was used for set abstraction layers
+        new_points = torch.cat([grouped_points, xyz_query_group_pc], dim=-1)  # Shape = (B, S, max_samples, C+D)
     return new_points
 
 

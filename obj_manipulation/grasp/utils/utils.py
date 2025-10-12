@@ -72,7 +72,7 @@ def reject_median_outliers(xyz_pc: FloatTensor, thresh: float = 0.4) -> FloatTen
     Returns:
         [M x 3] tensor containing the valid points in the input point cloud only.
     """
-    abs_med_dist = torch.abs(xyz_pc - torch.median(xyz_pc, dim=0, keepdim=True))
+    abs_med_dist = torch.abs(xyz_pc - torch.median(xyz_pc, dim=0, keepdim=True)[0])
     abs_med_dist = torch.sum(abs_med_dist, dim=1)
     return xyz_pc[abs_med_dist < thresh]
 
@@ -90,7 +90,7 @@ def oversample_point_cloud(xyz_pc: FloatTensor, n_points: int) -> FloatTensor:
     device = xyz_pc.device
     required = n_points - xyz_pc.shape[0]
     if required > 0:
-        index = torch.randint(0, xyz_pc.shape[0], size=required, device=device)
+        index = torch.randint(0, xyz_pc.shape[0], size=(required,), device=device)
         xyz_pc = torch.cat([xyz_pc, xyz_pc[index]], dim=0)
 
     return xyz_pc

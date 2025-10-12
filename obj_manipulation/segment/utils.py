@@ -49,7 +49,7 @@ def standardize_image_xyz(xyz_img: ndarray, device: torch.device) -> FloatTensor
     """
     size = (480, 640)
     xyz_img = VF.to_tensor(xyz_img).to(device=device, dtype=torch.float)
-    xyz_img = VF.resize(xyz_img, size=size)
+    xyz_img = VF.resize(xyz_img, size=size, interpolation=VF.InterpolationMode.NEAREST)
     return xyz_img
 
 
