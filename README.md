@@ -88,24 +88,24 @@ Run the dual-container setup for object manipulation:
 
 ```bash
 cd docker
-docker-compose up --build
+docker compose build --no-ache
 ```
 
 **Typical workflow for object manipulation:**
 ```bash
 # Start containers
 cd docker/
-docker-compose up -d
+docker compose up -d
 
 # or from root:
 docker compose -f docker/docker-compose.yml up -d
 
 
 # Terminal 1: Launch robot simulation
-docker-compose exec melodic bash #melodic is name of container
+docker compose exec -it melodic bash #melodic is name of container
 
 # Terminal 2: Run segmentation and manipulation code
-docker-compose exec noetic bash #noetic is name of container 
+docker compose exec -it noetic bash #noetic is name of container 
 ```
 
 **Container usage:**
@@ -115,13 +115,10 @@ docker-compose exec noetic bash #noetic is name of container
 **Quick commands:**
 ```bash
 # Access robot container
-docker-compose exec melodic bash
-
-# Access manipulation code container  
-docker-compose exec noetic bash
+docker compose exec -it <Container Name> bash
 
 # Stop everything
-docker-compose down
+docker compose down
 ```
 
 ### Container Environment
