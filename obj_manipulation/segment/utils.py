@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Literal
+from typing import TYPE_CHECKING, Any, Dict, Literal, Optional
 
 import cv2
+import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 import toml
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
 # Code adapted from https://github.com/chrisdxie/uois
 def standardize_image_rgb(rgb_img: ndarray, device: torch.device) -> FloatTensor:
     """Converts input array [0, 255] to tensor [0, 1] then normalizes with fixed mean and std.
-    Image is resized using a center-crop to a fixed size (480, 640) expected by segmentation module.
+    Image is resized using interpolation to a fixed size (480, 640) expected by segmentation module.
     
     Args:
         rgb_img: [H x W x 3] array of rgb image data of type uint8 from [0, 255].
@@ -30,8 +31,8 @@ def standardize_image_rgb(rgb_img: ndarray, device: torch.device) -> FloatTensor
     size = (480, 640)
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
-    rgb_img = VF.to_tensor(rgb_img).to(device=device)
-    rgb_img = VF.center_crop(rgb_img, output_size=size)
+    rgb_img = VF.to_tensor(rgb_img).to(device=device, dtype=torch.float)
+    rgb_img = VF.resize(rgb_img, size=size)
     rgb_img = VF.normalize(rgb_img, mean, std)
     return rgb_img
 
@@ -44,11 +45,11 @@ def standardize_image_xyz(xyz_img: ndarray, device: torch.device) -> FloatTensor
         device: Torch device to move transformed image to.
     
     Returns:
-        [3 x 480 x 640] tensor of standardized (cropped) xyz depth image.
+        [3 x 480 x 640] tensor of standardized (resized) xyz depth image.
     """
     size = (480, 640)
-    xyz_img = VF.to_tensor(xyz_img).to(device=device)
-    xyz_img = VF.center_crop(xyz_img, output_size=size)
+    xyz_img = VF.to_tensor(xyz_img).to(device=device, dtype=torch.float)
+    xyz_img = VF.resize(xyz_img, size=size)
     return xyz_img
 
 
@@ -111,7 +112,7 @@ def apply_open_close_morph(init_mask: IntTensor, kernel_size: int = 9) -> IntTen
             obj_mask_new.astype(np.uint8),
             cv2.MORPH_CLOSE,
             cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size)),
-        ).astype(np.bool)
+        ).astype(np.bool_)
 
         # Update cluster image
         init_mask[obj_mask] = 0  # Undo old mask
@@ -158,18 +159,35 @@ def load_config(path: Path) -> Dict[str, Any]:
     return config
 
 
-def visualize_rgb_segmap(rgb: ndarray, segmap: ndarray) -> None:
-    """Overlay rgb image with segmentation and visualize using Matplotlib.
+def visualize_rgb_segmap(rgb: ndarray, segmap: ndarray, bboxes: Optional[ndarray] = None) -> None:
+    """Overlay rgb image with segmentation and visualize using Matplotlib. Optionally overlay
+    bounding boxes if given.
 
     Args:
-        rbg: [H x W x 3] uint8 array containing the image rgb intensities.
+        rgb: [H x W x 3] uint8 array containing the image rgb intensities.
         segmap: [H x W] int containing the object labels of each pixel in image.
+        bboxes: [N x 4] int array containing the bounding box dimensions (x_min, y_min, x_max, y_max).
     """
     if rgb is not None:
         plt.imshow(rgb)
     if segmap is not None:
+        segmap_min, segmap_max = np.min(segmap), np.max(segmap)
+        segmap = (segmap - segmap_min) / (segmap_max - segmap_min) * 255
         cmap = plt.get_cmap('rainbow')
         cmap.set_under(alpha=0.0)
         plt.imshow(segmap, cmap=cmap, alpha=0.5, vmin=0.0001)
+    if bboxes is not None:
+        for bbox in bboxes:
+            x_min, y_min, x_max, y_max = bbox
+            height, width = y_max - y_min, x_max - x_min
+            rect = patches.Rectangle(
+                (x_min, y_min),
+                width,
+                height,
+                linewidth=2,
+                edgecolor='red',
+                facecolor='none',
+            )
+            plt.gca().add_patch(rect)
     plt.tight_layout()
     plt.show()

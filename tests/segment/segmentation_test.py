@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 import time
 from pathlib import Path
-# from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -52,7 +49,7 @@ def main():
     assert config_path.exists()
     config = load_config(config_path)
 
-    # # Initialize instance segmentation module and load its weights
+    # Initialize instance segmentation module and load its weights
     ins_seg = InstanceSegmentationFull(config)
     ins_seg.load()
     ins_seg.eval_mode()

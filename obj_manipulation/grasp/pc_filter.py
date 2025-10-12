@@ -61,8 +61,8 @@ class PointCloudFilter:
         # Get segmentation mask and object cluster center locations
         seg_mask, obj_centers = self.ins_seg.segement(xyz_img_t, rgb_img_t)
 
-        # Find closest object whose bounding-box fits inside the given PC size
-        obj_mask, obj_bbox = self._get_closest_valid_object(seg_mask, obj_centers, n_points)
+        # Find best object whose bounding-box fits inside the given PC size
+        obj_mask, obj_bbox = self._get_best_valid_object(seg_mask, obj_centers, n_points)
         
         # Exit early if all objects failed check
         if obj_mask is None:
@@ -83,7 +83,7 @@ class PointCloudFilter:
         # Fill point cloud with flattened xyz image data
         filtered_pc = torch.zeros((n_points, 3), device=device)
         n_points_xyz = xyz_img_crop.shape[1] * xyz_img_crop.shape[2]
-        filtered_pc[:n_points_xyz] = xyz_img_crop.view(3, n_points_xyz).t()
+        filtered_pc[:n_points_xyz] = xyz_img_crop.flatten(1, 2).t()
 
         # Get object point cloud from object mask
         object_pc = xyz_img_t[:, obj_mask].t()
@@ -128,13 +128,15 @@ class PointCloudFilter:
         left = center_x - width // 2
         return top.item(), left.item(), height.item(), width.item()
     
-    def _get_closest_valid_object(
+    def _get_best_valid_object(
         self,
         seg_mask: IntTensor,
         obj_centers: FloatTensor,
         n_points: int,
     ) -> Tuple[Optional[BoolTensor], Optional[FloatTensor]]:
-        """Find closest object whose bounding-box fits inside the given PC size.
+        """Find best object whose bounding-box fits inside the given PC size. Best is defined as
+        an object whose centroid is neither very close nor very far from the camera.
+        
         Returns the segmentation mask and bounding-box of that object if found 
         or None if all objects fail check.
 
@@ -148,7 +150,8 @@ class PointCloudFilter:
             - obj_mask: [H x W] tensor containing boolean object mask or None.
             - obj_bbox: [4] tensor of (x_min, y_min, x_max, y_max) bounding box coordinates.
         """
-        sorted_indices = torch.argsort(torch.norm(obj_centers, dim=1))
+        obj_dists = torch.norm(obj_centers, dim=1)
+        sorted_indices = torch.argsort(torch.abs(obj_dists - obj_dists.mean()))
         for i in sorted_indices:
             # Get object bounding box
             obj_label = i + self.ins_seg.OBJECTS_LABEL
