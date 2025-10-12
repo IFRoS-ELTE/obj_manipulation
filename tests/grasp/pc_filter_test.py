@@ -6,10 +6,12 @@ import numpy as np
 
 from obj_manipulation.grasp import PointCloudFilter
 from obj_manipulation.grasp.utils import depth_map_to_xyz
+from obj_manipulation.grasp.utils.utils_visualization import visualize_grasps
 from obj_manipulation.segment.utils import (
     standardize_image_rgb,
     standardize_image_xyz,
     unstandardize_image_rgb,
+    unstandardize_image_xyz,
     visualize_rgb_segmap,
 )
 
@@ -42,8 +44,10 @@ def main(file: str):
     device = pc_filter.ins_seg.device
     xyz_img_t = standardize_image_xyz(xyz_img, device=device)
     rgb_img_t = standardize_image_rgb(rgb_img, device=device)
+    rgb_img_np = unstandardize_image_rgb(rgb_img_t)
+    xyz_img_np = unstandardize_image_xyz(xyz_img_t)
     segmap, obj_centers = pc_filter.ins_seg.segement(xyz_img_t, rgb_img_t)
-    visualize_rgb_segmap(unstandardize_image_rgb(rgb_img_t), segmap.cpu().numpy())
+    visualize_rgb_segmap(rgb_img_np, segmap.cpu().numpy())
 
     # Test object selection and bounding box extraction functionalities
     obj_mask, obj_bbox = pc_filter._get_best_valid_object(segmap, obj_centers, 20_000)
@@ -51,18 +55,21 @@ def main(file: str):
     top, left, height, width = pc_filter._get_point_cloud_bbox(obj_mask, obj_bbox, 20_000)
     pc_bbox = np.array([left, top, left + width, top + height], dtype=np.int_) 
     visualize_rgb_segmap(
-        unstandardize_image_rgb(rgb_img_t),
+        rgb_img_np,
         obj_mask.int().cpu().numpy(),
         bboxes=pc_bbox.reshape(1, 4),
     )
 
     # Test full point cloud filtering functionality
-    n_points = height * width
     xyz_pc, _ = pc_filter.filter_point_cloud(xyz_img, rgb_img, n_points=20_000)
-    xyz_pc = xyz_pc[:n_points].cpu().numpy()
-    xyz_pc = xyz_pc.reshape(height, width, 3)
-    print(f"Extacted {n_points} points from object bounding box")
-    visualize_rgb_segmap(xyz_pc[..., 2], None)
+    xyz_pc = xyz_pc.cpu().numpy()
+    xyz_pc_idx = np.zeros(xyz_pc.shape[0], dtype=np.int_)
+    for i, xyz in enumerate(xyz_pc):
+        xyz = xyz[None, None, :]
+        xyz_pc_idx[i] = np.argmin(np.sum((xyz - xyz_img_np) ** 2, axis=-1))
+    visualize_grasps(
+        xyz_pc, rgb_img_np.reshape(-1, 3)[xyz_pc_idx], [], [], [], 0.0
+    )
 
 
 if __name__ == "__main__":

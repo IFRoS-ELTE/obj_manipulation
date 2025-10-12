@@ -279,6 +279,7 @@ class GraspEstimatorCGN(GraspEstimatorBase):
 
         # Sort remaining grasps by their confidence scores
         grasp_indices = torch.argsort(pred_scores[center_indices, 0], descending=True)
+        grasp_indices = center_indices[grasp_indices]
         return grasp_indices
     
     def _filter_grasps(self, pred_points: FloatTensor, obj_points: FloatTensor) -> IntTensor:

@@ -10,6 +10,7 @@ from obj_manipulation.grasp.utils.utils_pointnet import (
     get_squared_distances,
     group_points,
     index_points,
+    index_points_3d,
     sample_and_group,
     sample_and_group_all_points,
     sample_farthest_points,
@@ -155,7 +156,9 @@ class PointNetSetAbstractionMsg(nn.Module):
         for radius, max_samples, convs, bns in zip(
             self.radius_list, self.max_samples_list, self.conv_blocks, self.bn_blocks
         ):
-            new_points = group_points(xyz_pc, xyz_query_pc, points, radius, max_samples)
+            new_points = group_points(
+                xyz_pc, xyz_query_pc, points, radius, max_samples, concat_points_last=False
+            )
             new_points = new_points.permute(0, 3, 2, 1)  # Shape = (B, D, max_samples, self.n_points)
             for conv, bn in zip(convs, bns):
                 new_points = F.relu(bn(conv(new_points)))
@@ -228,7 +231,7 @@ class PointNetFeaturePropagation(nn.Module):
             weights /= torch.sum(weights, dim=2, keepdim=True)
 
             # Get interpolated points from points2 based on closest points in xyz_pc2 to points in xyz_pc1
-            points2_idx = index_points(points2, idx)
+            points2_idx = index_points_3d(points2, idx)
             interpolated_points = torch.sum(points2_idx * weights.unsqueeze(dim=3), dim=2)  # Shape = (B, N, D)
 
         # Combine interpolated points with points1

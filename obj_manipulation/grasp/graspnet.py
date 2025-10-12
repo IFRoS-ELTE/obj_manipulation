@@ -128,6 +128,7 @@ class ContactGraspNet(nn.Module):
             grasp_dir.permute(0, 2, 1),
             pred_points.permute(0, 2, 1),
             grasp_width.permute(0, 2, 1),
+            gripper_depth=self.gripper_depth,
         )  # Shape = (B, N, 4, 4)
 
         # Get success pred scores
@@ -149,12 +150,13 @@ class ContactGraspNet(nn.Module):
     def save(self, path: Path) -> None:
         assert path.exists(), f"Path {path} does not exist."
         assert path.is_dir(), f"Path {path} is not a directory."
-        torch.save(self.state_dict(), path / "CGN.pt")
+        checkpoint = {"model": self.state_dict}
+        torch.save(checkpoint, path / "CGN.pt")
     
     def load(self, path: Path) -> None:
         path /= "CGN.pt"
         assert path.exists(), f"Path {path} does not exist."
-        state_dict = torch.load(path, weights_only=True)
+        state_dict = torch.load(path, weights_only=False)["model"]
         self.load_state_dict(state_dict)
     
     def _get_bins_vals(self) -> FloatTensor:
@@ -216,7 +218,7 @@ class ContactGraspNet(nn.Module):
             mlp_list=[
                 [64, 64, 128],
                 [128, 128, 256],
-                [128, 256, 256],
+                [128, 128, 256],
             ],
             n_points=128,
             radius_list=[0.08, 0.16, 0.32],
