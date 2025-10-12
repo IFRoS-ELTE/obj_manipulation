@@ -41,11 +41,11 @@ services:
   # ROS Noetic container with Python 3 support
   noetic:
     build:
-      context: .
-      dockerfile: noetic/Dockerfile_nvidia_noetic
-    image: noetic_py3:latest
+      context: ..
+      dockerfile: docker/noetic/Dockerfile_robot
+    image: robot_noetic:latest
     container_name: noetic
-    command: /entrypoint.sh
+    command: docker/entrypoint.sh
     tty: true
     # CRITICAL: Required for GPU access and device permissions
     privileged: true
