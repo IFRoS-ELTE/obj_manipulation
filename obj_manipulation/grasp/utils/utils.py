@@ -3,35 +3,36 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
 
+import numpy as np
 import toml
 import torch
 
 if TYPE_CHECKING:
+    from numpy import ndarray
     from torch import FloatTensor
 
 
-def depth_map_to_xyz(depth: FloatTensor, intrinsics: FloatTensor) -> FloatTensor:
+def depth_map_to_xyz(depth: ndarray, intrinsics: ndarray) -> ndarray:
     """Convert a depth map to 3D XYZ coordinates in the camera frame.
     
     Args:
-        depth: [H x W] tensor containing depth values in meters.
-        intrinsics: [3, 3] tensor containing the camera intrinsic matrix:
+        depth: [H x W] array containing depth values in meters.
+        intrinsics: [3, 3] array containing the camera intrinsic matrix:
                     [[fx, 0, cx],
                     [0, fy, cy],
                     [0,  0,  1]]
 
     Returns:
-        [H x W x 3] tensor of 3D coordinates (X, Y, Z) in the camera frame.
+        [H x W x 3] array of 3D coordinates (X, Y, Z) in the camera frame.
     """
-    device = depth.device
     height, width = depth.shape
     fx, fy = intrinsics[0, 0], intrinsics[1, 1]
     cx, cy = intrinsics[0, 2], intrinsics[1, 2]
 
     # Create meshgrid of pixel coordinates
-    u = torch.arange(width, device=device)
-    v = torch.arange(height, device=device)
-    uu, vv = torch.meshgrid(u, v, indexing='xy')  # [H, W]
+    u = np.arange(width)
+    v = np.arange(height)
+    uu, vv = np.meshgrid(u, v, indexing='xy')  # [H, W]
 
     # Compute X, Y, Z coordinates
     Z = depth
@@ -39,7 +40,7 @@ def depth_map_to_xyz(depth: FloatTensor, intrinsics: FloatTensor) -> FloatTensor
     Y = (vv - cy) * Z / fy
     
     # Stack into (H, W, 3)
-    return torch.stack((X, Y, Z), dim=2)
+    return np.stack((X, Y, Z), axis=2)
 
 
 def filter_point_cloud_by_depth(

@@ -6,17 +6,17 @@ oc_morph_kernel_size = 9
 use_largest_connected_component = true
 lcc_connectivity = 4
 filter_small_clusters = true
-min_pixels_thresh = 500
+min_pixels_thresh = 2000
 
 # DSN segmentation module parameters
 [dsn]
 feature_dim = 64
-min_pixels_thresh = 500
+min_pixels_thresh = 2000
 [dsn.gms]
-num_seeds = 200
+num_seeds = 300
 max_iters = 10
-epsilon = 0.05
-sigma = 0.02
+epsilon = 0.075
+sigma = 0.05
 subsample_factor = 5
 
 # RRN segmentation module parameters
