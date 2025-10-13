@@ -15,7 +15,7 @@ This project uses Docker with NVIDIA GPU support for ROS1 Noetic development.
 
 ### Building the Docker Image
 
-1. **Build the ROS1 Melodic image:**
+1. **Build the ROS1 Noetic image:**
    ```bash
    chmod +x ./docker/build_image.sh
    ./docker/build_image.sh
@@ -123,37 +123,12 @@ Start
 ```
 
 ## Unseen Object Instance Segmentation
-To use the instance segmentation module, the following steps must be executed:
+To use the instance segmentation module, follow the instructions given inside the following [`README.md`](./obj_manipulation/segment/models/README.md) to download its pre-trained weights.
+Then, follow the instructions inside the following [`README.md`](./tests/segment/examples/README.md) to verify that it works as expected.
 
-1. Create a `models` directory inside the segmentation module: 
-```bash
-cd /catkin_ws/src/obj_manipulation
-mkdir mkdir obj_manipulation/segment/models
-```
-
-2. Download the trained models' weights from [here](https://drive.google.com/drive/folders/1_rh8EcGW7P9Vo4pw2w09rKpbWrmR3CKu?usp=sharing) and place them inside the `models` directory.
-
-To test that the module works as expected, the following steps should be followed:
-
-1. Create an `examples` directory inside the segmentation tests directory:
-```bash
-cd /catkin_ws/src/obj_manipulation
-mkdir tests/segment/examples
-```
-
-2. Download the provided examples from [here](https://drive.google.com/drive/folders/1UYn42QL-Wj7qFGC36wFlUS30bvaxTsgK?usp=sharing) and place them inside the `examples` directory.
-
-3. Run the following test script for instance segmentation:
-```bash
-cd /catkin_ws/src/obj_manipulation
-python3 tests/segment/segmentation_test.py
-```
-
-The following figure represents a sample of the expected results:
-<p align="center">
-  <img src="images/InstanceSegmentation1.png" alt="Inst. Seg. Example 1" height="200"/>
-  <img src="images/InstanceSegmentation2.png" alt="Inst. Seg. Example 1" height="200"/>
-</p>
+## Grasp Estimation using Contact-GraspNet
+Similar to the instance segmentation module, follow the instructions given inside the following [`README.md`](./obj_manipulation/grasp/models/README.md) to download its pre-trained weights.
+Then, follow the instructions inside the following [`README.md`](./tests/grasp/examples/README.md) to verify that it works as expected.
 
 ## Troubleshooting
 - If RViz/MoveIt cannot load gripper meshes like `package://dh_robotics_ag95_model/...`:
