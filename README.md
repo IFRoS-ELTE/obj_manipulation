@@ -88,7 +88,7 @@ Run the dual-container setup for object manipulation:
 
 ```bash
 cd docker
-docker compose build --no-ache
+docker compose build --no-cache
 ```
 
 **Typical workflow for object manipulation:**
@@ -133,6 +133,32 @@ docker compose down
 cd /catkin_ws
 catkin_make
 source /catkin_ws/devel/setup.bash
+```
+
+## Testing noetic melodic connection
+
+```bash
+#In melodic docker (Terminal-1)
+cd /catkin_ws
+catkin_make
+source /catkin_ws/devel/setup.bash
+
+roslaunch obj_manipulation scout_xarm_moveit.launch 
+
+#In melodic docker (Terminal-2)
+cd /catkin_ws
+catkin_make
+source /catkin_ws/devel/setup.bash
+
+rosrun obj_manipulation xarm_move.py 
+
+#In noetic docker (Terminal-1)
+cd /catkin_ws
+catkin_make
+source /catkin_ws/devel/setup.bash
+
+rosrun obj_manipulation xarm_moveit_noetic.py
+
 ```
 
 ## Launching robot
