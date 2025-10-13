@@ -42,13 +42,13 @@ python3 tests/grasp/grasp_test.py -f 0.npy
 
 The following figure represents the expected segmentation and object selection results from the `pc_filter_test.py` test script.
 <p align="center">
-  <img src="../../../images/PointCloudFilter1.png" alt="Instance Segmentation" height="200"/>
-  <img src="../../../images/PointCloudFilter2.png" alt="Object Selection" height="200"/>
+  <img src="../../../images/PointCloudFilter1.png" alt="Instance Segmentation" height="350"/>
+  <img src="../../../images/PointCloudFilter2.png" alt="Object Selection" height="350"/>
 </p>
 
 Lastly, the following figure showcases the expected grasp estimation results from the `grasp_test.py` test script.
 The colors of the shown grasps represent their predicted success probabilities.
 All grasps are shown with a fixed grasp width set to the gripper's width.
 <p align="center">
-  <img src="../../../images/GraspEstimation.png" alt="Grasp Estimation" height="200"/>
+  <img src="../../../images/GraspEstimation.png" alt="Grasp Estimation" height="400"/>
 </p>
