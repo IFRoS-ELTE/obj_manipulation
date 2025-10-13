@@ -4,6 +4,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import torch
 
 from obj_manipulation.grasp import GraspEstimatorCGN
 from obj_manipulation.grasp.utils import (
@@ -13,7 +14,19 @@ from obj_manipulation.grasp.utils import (
 from obj_manipulation.grasp.utils.utils_visualization import visualize_grasps
 
 
+def seed_everything(seed: int) -> None:
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def main(file: str, vis_width: bool):
+    # Seed PyTorch and NumPy to ensure that repeatable results
+    seed_everything(seed=0)
+    
     # Load configuration
     config_path = Path(__file__).parents[2] / "obj_manipulation/grasp/config/config.toml"
     assert config_path.exists()

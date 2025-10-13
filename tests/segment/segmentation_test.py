@@ -14,6 +14,15 @@ from obj_manipulation.segment.utils import (
 )
 
 
+def seed_everything(seed: int) -> None:
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def get_color_mask(object_index, nc=None):
     """Colors each index differently. Useful for visualizing semantic masks.
 
@@ -44,6 +53,9 @@ def get_color_mask(object_index, nc=None):
 
 
 def main():
+    # Seed PyTorch and NumPy to ensure that repeatable results
+    seed_everything(seed=0)
+
     # Load configuration
     config_path = Path(__file__).parents[2] / "obj_manipulation/segment/config/config.toml"
     assert config_path.exists()

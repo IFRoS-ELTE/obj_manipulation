@@ -3,6 +3,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import torch
 
 from obj_manipulation.grasp import PointCloudFilter
 from obj_manipulation.grasp.utils import depth_map_to_xyz
@@ -16,7 +17,19 @@ from obj_manipulation.segment.utils import (
 )
 
 
+def seed_everything(seed: int) -> None:
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def main(file: str):
+    # Seed PyTorch and NumPy to ensure that repeatable results
+    seed_everything(seed=0)
+    
     # Initialize point cloud filter
     pc_filter = PointCloudFilter()
 
