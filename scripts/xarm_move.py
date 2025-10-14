@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import sys
 import rospy
 import moveit_commander
@@ -83,6 +83,23 @@ def main():
     # Set target and plan
     group.set_start_state_to_current_state()
     group.set_pose_target(target_pose)
+    
+    # Apply end-effector offsets from launch file parameters
+    eef_link = group.get_end_effector_link()
+    offset_x = rospy.get_param('xarm/eef_offset_x', 0.0)
+    offset_y = rospy.get_param('xarm/eef_offset_y', 0.0)
+    offset_z = rospy.get_param('xarm/eef_offset_z', 0.0)
+    
+    if abs(offset_x) > 0.001:
+        group.shift_pose_target(0, offset_x, eef_link)
+        print(f"Applied X offset: {offset_x:.3f} m")
+    if abs(offset_y) > 0.001:
+        group.shift_pose_target(1, offset_y, eef_link)
+        print(f"Applied Y offset: {offset_y:.3f} m")
+    if abs(offset_z) > 0.001:
+        group.shift_pose_target(2, offset_z, eef_link)
+        print(f"Applied Z offset: {offset_z:.3f} m")
+    
     print(group)
     plan = group.plan()  # returns RobotTrajectory object in MoveIt 1
     print(plan)
@@ -96,6 +113,13 @@ def main():
         group.set_goal_orientation_tolerance(0.15)
         group.set_start_state_to_current_state()
         group.set_pose_target(target_pose)
+        # Re-apply offsets for retry
+        if abs(offset_x) > 0.001:
+            group.shift_pose_target(0, offset_x, eef_link)
+        if abs(offset_y) > 0.001:
+            group.shift_pose_target(1, offset_y, eef_link)
+        if abs(offset_z) > 0.001:
+            group.shift_pose_target(2, offset_z, eef_link)
         plan_retry = group.plan()
         if plan_retry and plan_retry.joint_trajectory.points:
             group.execute(plan_retry, wait=True)

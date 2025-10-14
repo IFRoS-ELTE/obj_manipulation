@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- ========== ARGUMENTS ========== -->
+  
+  <!-- Planning pipeline -->
+  <arg name="pipeline" default="ompl" doc="Planning pipeline to use (ompl, chomp, etc.)"/>
+  
+  <!-- Database options -->
+  <!-- <arg name="db" default="false" doc="Start MoveIt database"/> -->
+  <!-- <arg name="db_path" default="$(find scout_xarm_grip_moveit_config)/default_warehouse_mongo_db" doc="Database path"/> -->
+  
+  <!-- Debug mode -->
+  <arg name="debug" default="false" doc="Enable debug mode"/>
+  
+  <!-- Robot description loading -->
+  <arg name="load_robot_description" default="true" doc="Load robot description"/>
+  
+  <!-- Execution type for fake execution -->
+  <arg name="execution_type" default="interpolate" doc="Execution type: interpolate, via points, etc."/>
+  
+  <!-- GUI options -->
+  <arg name="use_gui" default="false" doc="Use joint state publisher GUI"/>
+  <arg name="use_rviz" default="true" doc="Launch RViz"/>
+  
+  <!-- Simulation options -->
+  <arg name="use_sim_time" default="false" doc="Use simulation time"/>
+  <arg name="gazebo" default="false" doc="Launch with Gazebo simulation"/>
+  <arg name="gazebo_gui" default="true" doc="Gazebo GUI"/>
+  <arg name="paused" default="false" doc="Start Gazebo paused"/>
+  
+  <!-- Real hardware options -->
+  <arg name="use_real_hardware" default="false" doc="Use real hardware instead of simulation"/>
+  <arg name="robot_ip" default="192.168.1.219" doc="Robot IP address for real hardware"/>
+  
+  <!-- Joint limits -->
+  <arg name="limited" default="false" doc="Limit joints to [-PI, PI]"/>
+  
+  <!-- real robot args -->
+  <arg name="report_type" default="normal" />	
+  <arg name="xarm_hw_ns" default="xarm" />
+  <arg name="velocity_control" default="false"/>
+  <arg name="enforce_limits" default="true" />
+  <arg name="baud_checkset" default="true" />
+	<arg name="default_gripper_baud" default="2000000" />
+
+  <!-- ========== SIMULATION TIME ========== -->
+  <param name="use_sim_time" value="$(arg use_sim_time)"/>
+
+  <!-- ========== GAZEBO SIMULATION ========== -->
+  <group if="$(arg gazebo)">
+    <!-- Startup simulated world -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+      <arg name="world_name" default="worlds/empty.world"/>
+      <arg name="paused" value="$(arg paused)"/>
+      <arg name="gui" value="$(arg gazebo_gui)"/>
+      <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    </include>
+
+    <!-- Load robot description -->
+    <param name="robot_description"
+           command="$(find xacro)/xacro --inorder '$(find obj_manipulation)/src/scout_xarm_gripper.xacro' limited:=$(arg limited)"/>
+
+    <!-- Spawn robot in Gazebo -->
+    <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" 
+          args="-urdf -param robot_description -model scout_xarm -x 0 -y 0 -z 0"
+          respawn="false" output="screen"/>
+
+    <!-- Load controllers -->
+    <include file="$(find scout_xarm_grip_moveit_config)/launch/ros_controllers.launch"/>
+  </group>
+
+ <!-- ========== REAL HARDWARE ========== -->
+  <group if="$(arg use_real_hardware)">
+	<node pkg="dh_gripper_driver" type="dh_gripper_joint_state" name="dh_gripper_state" />
+	<include file="$(find scout_xarm_grip_moveit_config)/launch/realMove_exec.launch">
+		<arg name="robot_ip" value="$(arg robot_ip)"/>
+	</include>
+  </group>
+
+  <!-- ========== SIMULATION (NO GAZEBO) ========== -->
+  <group unless="$(arg gazebo)">
+    <group unless="$(arg use_real_hardware)">
+      <!-- Load robot description -->
+      <param name="robot_description"
+             command="$(find xacro)/xacro --inorder '$(find obj_manipulation)/src/scout_xarm_gripper.xacro' limited:=$(arg limited)"/>
+
+      <!-- Joint State Publisher -->
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
+        <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>
+      </node>
+      <node name="joint_state_publisher_gui" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" if="$(arg use_gui)">
+        <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>
+      </node>
+    </group>
+  </group>
+
+  <!-- ========== ROBOT STATE PUBLISHER ========== -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+      respawn="true" output="screen" unless="$(arg use_real_hardware)"/>
+
+  <!-- ========== MOVEIT MOVE GROUP ========== -->
+  <group unless="$(arg use_real_hardware)">
+  <include file="$(find scout_xarm_grip_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="fake_execution" value="true"/>
+    <!-- <arg name="execution_type" value="$(arg execution_type)"/> -->
+    <arg name="info" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="pipeline" value="$(arg pipeline)"/>
+    <arg name="load_robot_description" value="false"/>
+  </include>
+  </group>
+
+  <!-- ========== RViz ========== -->
+  <group unless="$(arg use_real_hardware)">
+  <include file="$(find scout_xarm_grip_moveit_config)/launch/moveit_rviz.launch" if="$(arg use_rviz)">
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  </group>
+ 
+
+</launch>
