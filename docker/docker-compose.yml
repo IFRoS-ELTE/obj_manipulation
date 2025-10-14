@@ -50,7 +50,8 @@ services:
     # CRITICAL: Required for GPU access and device permissions
     privileged: true
     volumes:
-            # X11 forwarding for GUI applications (RViz, etc.)
+      - "../:/catkin_ws/src/obj_manipulation"
+      # X11 forwarding for GUI applications (RViz, etc.)
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${XAUTHORITY}:/root/.Xauthority:rw
       # GPU device access for hardware acceleration
