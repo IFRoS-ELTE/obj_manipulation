@@ -1,9 +1,8 @@
- 
 services:
   # ROS Melodic container with MoveIt and GPU support
   melodic:
     build:
-      context: .                   
+      context: .
       dockerfile: melodic/Dockerfile_nvidia_melodic
     image: melodic_moveit:latest
     container_name: melodic
@@ -36,7 +35,7 @@ services:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [gpu]
+              capabilities: [ gpu ]
 
   # ROS Noetic container with Python 3 support
   noetic:
@@ -50,6 +49,7 @@ services:
     # CRITICAL: Required for GPU access and device permissions
     privileged: true
     volumes:
+      # Mount project as subdirectory in catkin workspace  
       - "../:/catkin_ws/src/obj_manipulation"
       # X11 forwarding for GUI applications (RViz, etc.)
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
@@ -73,4 +73,4 @@ services:
           devices:
             - driver: nvidia
               count: all
-              capabilities: [gpu]
+              capabilities: [ gpu ]
