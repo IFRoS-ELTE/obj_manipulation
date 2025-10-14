@@ -4,7 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /MotionPlanning1
         - /MotionPlanning1/Planned Path1
+        - /Marker1
         - /TF1
         - /TF1/Frames1
         - /Pose2
@@ -406,21 +408,116 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Filter (blacklist): ""
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        arm_base:
+          Value: true
+        base_link:
+          Value: true
+        box_link:
+          Value: false
+        dh_robotics_ag95_base_link:
+          Value: false
+        display_Link:
+          Value: false
+        dummy_base_link:
+          Value: false
+        front_left_wheel_link:
+          Value: true
+        front_right_wheel_link:
+          Value: true
+        inertial_link:
+          Value: false
+        laser_Link:
+          Value: false
+        left_crank:
+          Value: false
+        left_distal_phalanx:
+          Value: false
+        left_proximal_phalanx:
+          Value: false
+        left_rod:
+          Value: false
+        link1:
+          Value: false
+        link2:
+          Value: false
+        link3:
+          Value: false
+        link4:
+          Value: false
+        link5:
+          Value: false
+        link6:
+          Value: false
+        link_base:
+          Value: true
+        link_eef:
+          Value: false
+        rear_left_wheel_link:
+          Value: true
+        rear_right_wheel_link:
+          Value: true
+        right_crank:
+          Value: false
+        right_distal_phalanx:
+          Value: false
+        right_proximal_phalanx:
+          Value: false
+        right_rod:
+          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        dummy_base_link:
+          base_link:
+            arm_base:
+              link_base:
+                link1:
+                  link2:
+                    link3:
+                      link4:
+                        link5:
+                          link6:
+                            dh_robotics_ag95_base_link:
+                              left_crank:
+                                left_rod:
+                                  left_distal_phalanx:
+                                    {}
+                              left_proximal_phalanx:
+                                {}
+                              right_crank:
+                                right_rod:
+                                  right_distal_phalanx:
+                                    {}
+                              right_proximal_phalanx:
+                                {}
+                            link_eef:
+                              {}
+            box_link:
+              display_Link:
+                {}
+              laser_Link:
+                {}
+            front_left_wheel_link:
+              {}
+            front_right_wheel_link:
+              {}
+            inertial_link:
+              {}
+            rear_left_wheel_link:
+              {}
+            rear_right_wheel_link:
+              {}
       Update Interval: 0
-      Value: false
+      Value: true
     - Class: rviz/Image
       Enabled: false
       Image Topic: /cam1/color/image_raw
@@ -494,10 +591,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.2653988301753998
+      Pitch: 0.245398610830307
       Target Frame: base_link
       Value: XYOrbit (rviz)
-      Yaw: 1.150397777557373
+      Yaw: 0.9203980565071106
     Saved: ~
 Window Geometry:
   Displays:
