@@ -59,7 +59,7 @@
 
     <!-- Load robot description -->
     <param name="robot_description"
-           command="$(find xacro)/xacro  '$(find scout_xarm_description)/scout_xarm6.xacro' limited:=$(arg limited)"/>
+           command="$(find xacro)/xacro  '$(find xarm_description)/xarm6_urdf/xarm6_with_gripper.xacro' limited:=$(arg limited)"/>
 
     <!-- Spawn robot in Gazebo -->
     <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" 
@@ -67,13 +67,13 @@
           respawn="false" output="screen"/>
 
     <!-- Load controllers -->
-    <include file="$(find scout_xarm_moveit_config)/launch/ros_controllers.launch"/>
+    <include file="$(find xarm6_gripper_moveit_config)/launch/ros_controllers.launch"/>
   </group>
 
  <!-- ========== REAL HARDWARE ========== -->
   <group if="$(arg use_real_hardware)">
 	<node pkg="dh_gripper_driver" type="dh_gripper_joint_state" name="dh_gripper_state" />
-	<include file="$(find scout_xarm_moveit_config)/launch/realMove_exec.launch">
+	<include file="$(find xarm6_gripper_moveit_config)/launch/realMove_exec.launch">
 		<arg name="robot_ip" value="$(arg robot_ip)"/>
 	</include>
   </group>
@@ -83,7 +83,7 @@
     <group unless="$(arg use_real_hardware)">
       <!-- Load robot description -->
       <param name="robot_description"
-             command="$(find xacro)/xacro  '$(find scout_xarm_description)/scout_xarm6.xacro' limited:=$(arg limited)"/>
+            command="$(find xacro)/xacro  '$(find scout_xarm_description)/scout_xarm6.xacro' limited:=$(arg limited)"/>
 
       <!-- Joint State Publisher -->
       <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
@@ -96,25 +96,27 @@
   </group>
 
   <!-- ========== ROBOT STATE PUBLISHER ========== -->
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
-      respawn="true" output="screen" unless="$(arg use_real_hardware)"/>
+  <!-- <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+      respawn="true" output="screen" unless="$(arg use_real_hardware)"/> -->
 
   <!-- ========== MOVEIT MOVE GROUP ========== -->
   <group unless="$(arg use_real_hardware)">
-  <include file="$(find scout_xarm_moveit_config)/launch/move_group.launch">
+  <!-- Ensure URDF/SRDF are loaded so /robot_description_semantic exists -->
+  <include file="$(find xarm6_gripper_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+  <include file="$(find xarm6_gripper_moveit_config)/launch/move_group.launch">
     <arg name="allow_trajectory_execution" value="true"/>
     <arg name="fake_execution" value="true"/>
-    <arg name="execution_type" value="$(arg execution_type)"/>
     <arg name="info" value="true"/>
     <arg name="debug" value="$(arg debug)"/>
-    <arg name="pipeline" value="$(arg pipeline)"/>
-    <arg name="load_robot_description" value="false"/>
+    <arg name="gripper_controller" value="true"/>
   </include>
   </group>
 
   <!-- ========== RViz ========== -->
   <group unless="$(arg use_real_hardware)">
-  <include file="$(find scout_xarm_moveit_config)/launch/moveit_rviz.launch" if="$(arg use_rviz)">
+  <include file="$(find xarm6_gripper_moveit_config)/launch/moveit_rviz.launch" if="$(arg use_rviz)">
     <arg name="debug" value="$(arg debug)"/>
   </include>
 

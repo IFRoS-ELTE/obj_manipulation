@@ -8,7 +8,7 @@
   
   <!-- Database options -->
   <!-- <arg name="db" default="false" doc="Start MoveIt database"/> -->
-  <!-- <arg name="db_path" default="$(find scout_xarm_moveit_config)/default_warehouse_mongo_db" doc="Database path"/> -->
+  <!-- <arg name="db_path" default="$(find scout_xarm_grip_moveit_config)/default_warehouse_mongo_db" doc="Database path"/> -->
   
   <!-- Debug mode -->
   <arg name="debug" default="false" doc="Enable debug mode"/>
@@ -59,7 +59,7 @@
 
     <!-- Load robot description -->
     <param name="robot_description"
-           command="$(find xacro)/xacro  '$(find scout_xarm_description)/scout_xarm6.xacro' limited:=$(arg limited)"/>
+           command="$(find xacro)/xacro --inorder '$(find obj_manipulation)/src/scout_xarm_gripper.xacro' limited:=$(arg limited)"/>
 
     <!-- Spawn robot in Gazebo -->
     <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" 
@@ -67,13 +67,13 @@
           respawn="false" output="screen"/>
 
     <!-- Load controllers -->
-    <include file="$(find scout_xarm_moveit_config)/launch/ros_controllers.launch"/>
+    <include file="$(find scout_xarm_grip_moveit_config)/launch/ros_controllers.launch"/>
   </group>
 
  <!-- ========== REAL HARDWARE ========== -->
   <group if="$(arg use_real_hardware)">
 	<node pkg="dh_gripper_driver" type="dh_gripper_joint_state" name="dh_gripper_state" />
-	<include file="$(find scout_xarm_moveit_config)/launch/realMove_exec.launch">
+	<include file="$(find scout_xarm_grip_moveit_config)/launch/realMove_exec.launch">
 		<arg name="robot_ip" value="$(arg robot_ip)"/>
 	</include>
   </group>
@@ -83,7 +83,7 @@
     <group unless="$(arg use_real_hardware)">
       <!-- Load robot description -->
       <param name="robot_description"
-             command="$(find xacro)/xacro  '$(find scout_xarm_description)/scout_xarm6.xacro' limited:=$(arg limited)"/>
+             command="$(find xacro)/xacro --inorder '$(find obj_manipulation)/src/scout_xarm_gripper.xacro' limited:=$(arg limited)"/>
 
       <!-- Joint State Publisher -->
       <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
@@ -101,10 +101,10 @@
 
   <!-- ========== MOVEIT MOVE GROUP ========== -->
   <group unless="$(arg use_real_hardware)">
-  <include file="$(find scout_xarm_moveit_config)/launch/move_group.launch">
+  <include file="$(find scout_xarm_grip_moveit_config)/launch/move_group.launch">
     <arg name="allow_trajectory_execution" value="true"/>
     <arg name="fake_execution" value="true"/>
-    <arg name="execution_type" value="$(arg execution_type)"/>
+    <!-- <arg name="execution_type" value="$(arg execution_type)"/> -->
     <arg name="info" value="true"/>
     <arg name="debug" value="$(arg debug)"/>
     <arg name="pipeline" value="$(arg pipeline)"/>
@@ -114,7 +114,7 @@
 
   <!-- ========== RViz ========== -->
   <group unless="$(arg use_real_hardware)">
-  <include file="$(find scout_xarm_moveit_config)/launch/moveit_rviz.launch" if="$(arg use_rviz)">
+  <include file="$(find scout_xarm_grip_moveit_config)/launch/moveit_rviz.launch" if="$(arg use_rviz)">
     <arg name="debug" value="$(arg debug)"/>
   </include>
 
