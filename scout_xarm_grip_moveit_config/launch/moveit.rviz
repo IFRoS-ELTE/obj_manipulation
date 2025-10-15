@@ -9,9 +9,8 @@ Panels:
         - /Marker1
         - /TF1
         - /TF1/Frames1
-        - /Pose2
       Splitter Ratio: 0.7425600290298462
-    Tree Height: 255
+    Tree Height: 264
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -408,116 +407,21 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Filter (blacklist): ""
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        arm_base:
-          Value: true
-        base_link:
-          Value: true
-        box_link:
-          Value: false
-        dh_robotics_ag95_base_link:
-          Value: false
-        display_Link:
-          Value: false
-        dummy_base_link:
-          Value: false
-        front_left_wheel_link:
-          Value: true
-        front_right_wheel_link:
-          Value: true
-        inertial_link:
-          Value: false
-        laser_Link:
-          Value: false
-        left_crank:
-          Value: false
-        left_distal_phalanx:
-          Value: false
-        left_proximal_phalanx:
-          Value: false
-        left_rod:
-          Value: false
-        link1:
-          Value: false
-        link2:
-          Value: false
-        link3:
-          Value: false
-        link4:
-          Value: false
-        link5:
-          Value: false
-        link6:
-          Value: false
-        link_base:
-          Value: true
-        link_eef:
-          Value: false
-        rear_left_wheel_link:
-          Value: true
-        rear_right_wheel_link:
-          Value: true
-        right_crank:
-          Value: false
-        right_distal_phalanx:
-          Value: false
-        right_proximal_phalanx:
-          Value: false
-        right_rod:
-          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        dummy_base_link:
-          base_link:
-            arm_base:
-              link_base:
-                link1:
-                  link2:
-                    link3:
-                      link4:
-                        link5:
-                          link6:
-                            dh_robotics_ag95_base_link:
-                              left_crank:
-                                left_rod:
-                                  left_distal_phalanx:
-                                    {}
-                              left_proximal_phalanx:
-                                {}
-                              right_crank:
-                                right_rod:
-                                  right_distal_phalanx:
-                                    {}
-                              right_proximal_phalanx:
-                                {}
-                            link_eef:
-                              {}
-            box_link:
-              display_Link:
-                {}
-              laser_Link:
-                {}
-            front_left_wheel_link:
-              {}
-            front_right_wheel_link:
-              {}
-            inertial_link:
-              {}
-            rear_left_wheel_link:
-              {}
-            rear_right_wheel_link:
-              {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Class: rviz/Image
       Enabled: false
       Image Topic: /cam1/color/image_raw
@@ -599,7 +503,7 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1016
+  Height: 1043
   Help:
     collapsed: false
   Hide Left Dock: false
@@ -610,9 +514,9 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001f3000003a2fc0200000008fb000000100044006900730070006c006100790073010000003b0000013a000000c700fffffffb0000000a0049006d0061006700650000000131000000df0000001600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000c00430061006d006500720061010000010e000000820000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e0067010000017b000002620000016900fffffffb0000000c00430061006d0065007200610100000333000000b000000000000000000000000100000132000003a5fc0200000001fb0000000a00560069006500770073000000003e000003a5000000a000ffffff00000541000003a200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001f3000003bdfc0200000008fb000000100044006900730070006c006100790073010000003b00000143000000c700fffffffb0000000a0049006d0061006700650000000131000000df0000001600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000c00430061006d006500720061010000010e000000820000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000184000002740000016900fffffffb0000000c00430061006d0065007200610100000333000000b000000000000000000000000100000132000003a5fc0200000001fb0000000a00560069006500770073000000003e000003a5000000a000ffffff00000587000003bd00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: true
-  Width: 1850
-  X: 70
-  Y: 27
+  Width: 1920
+  X: 0
+  Y: 0

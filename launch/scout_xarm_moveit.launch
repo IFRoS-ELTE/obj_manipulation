@@ -96,8 +96,8 @@
   </group>
 
   <!-- ========== ROBOT STATE PUBLISHER ========== -->
-  <!-- <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
-      respawn="true" output="screen" unless="$(arg use_real_hardware)"/> -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+      respawn="true" output="screen" unless="$(arg use_real_hardware)"/>
 
   <!-- ========== MOVEIT MOVE GROUP ========== -->
   <group unless="$(arg use_real_hardware)">
