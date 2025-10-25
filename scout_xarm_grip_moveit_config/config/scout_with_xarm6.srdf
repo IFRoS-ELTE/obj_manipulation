@@ -17,7 +17,9 @@
         <joint name="joint4" />
         <joint name="joint5" />
         <joint name="joint6" />
-        <chain base_link="link_base" tip_link="link6" />
+        <joint name="joint_eef" />
+        <joint name="moveit_eef_joint" />
+        <chain base_link="link_base" tip_link="moveit_eef" />
     </group>
     <group name="gripper">
         <joint name="right_proximal_phalanx_joint" />
@@ -55,7 +57,7 @@
         <joint name="right_proximal_phalanx_joint" value="0.4355565" />
     </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
-    <end_effector name="endeffector" parent_link="link6" group="gripper" parent_group="xarm6" />
+    <end_effector name="endeffector" parent_link="moveit_eef" group="gripper" parent_group="xarm6" />
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
     <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="dummy_base_link" />
     <!--PASSIVE JOINT: Purpose: this element is used to mark joints that are not actuated-->
