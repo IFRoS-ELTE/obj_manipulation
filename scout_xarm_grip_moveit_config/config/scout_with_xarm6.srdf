@@ -196,4 +196,12 @@
     <disable_collisions link1="right_crank" link2="right_rod" reason="Adjacent" />
     <disable_collisions link1="right_distal_phalanx" link2="right_proximal_phalanx" reason="Default" />
     <disable_collisions link1="right_distal_phalanx" link2="right_rod" reason="Adjacent" />
+    <!-- Gripper collision fixes: disable collisions between finger tips when closing -->
+    <disable_collisions link1="left_distal_phalanx" link2="right_distal_phalanx" reason="Never" />
+    <disable_collisions link1="right_distal_phalanx" link2="left_proximal_phalanx" reason="Never" />
+    <!-- Additional gripper collision fixes -->
+    <disable_collisions link1="left_proximal_phalanx" link2="left_rod" reason="Adjacent" />
+    <disable_collisions link1="right_proximal_phalanx" link2="right_rod" reason="Adjacent" />
+    <disable_collisions link1="left_distal_phalanx" link2="left_rod" reason="Adjacent" />
+    <disable_collisions link1="right_distal_phalanx" link2="right_rod" reason="Adjacent" />
 </robot>
