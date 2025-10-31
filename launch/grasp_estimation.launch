@@ -1,0 +1,8 @@
+<launch>
+    <!-- Launch grasp estimation node -->
+    <node pkg="obj_manipulation"
+          type="grasp_estimation_node.py"
+          name="grasp_estimation_node"
+          output="screen">
+    </node>
+</launch>
