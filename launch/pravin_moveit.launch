@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Use real hardware, but DO NOT launch xarm_bringup -->
+  <arg name="use_real_hardware" default="true" />
+  <arg name="use_rviz" default="true" />
+  <arg name="debug" default="false" />
+  <arg name="pipeline" default="ompl" />
+  
+  <!-- Connect to robot description from ROS parameter server -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find scout_xarm_description)/scout_xarm6.xacro'"/>
+
+  <!-- Launch MoveIt Move Group only if needed, here we assume it's running on robot -->
+  <!-- Only launch RViz -->
+  <include file="$(find scout_xarm_moveit_config)/launch/moveit_rviz.launch" if="$(arg use_rviz)">
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+</launch>
