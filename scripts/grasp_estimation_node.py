@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import torch
 import os
+import open3d as o3d
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped
@@ -22,17 +23,15 @@ class GraspEstimationNode:
         self.depth_image = None
         self.camera_intrinsics = None
 
-        # -------- Grasp Saving Configuration --------
+        # -------- Logging Configuration --------
         self.saved_grasps = []
+        self.saved_clouds = 0
         self.max_saved = 10
-        self.output_path = "/catkin_ws/src/obj_manipulation/grasp_poses.txt"
+        self.log_dir = "/catkin_ws/src/obj_manipulation/data_logs"
 
-        # Clear old file on startup
-        try:
-            open(self.output_path, "w").close()
-            rospy.loginfo(f"Cleared previous grasp log: {self.output_path}")
-        except Exception as e:
-            rospy.logwarn(f"Could not clear grasp file: {e}")
+        # Create log directory if missing
+        os.makedirs(self.log_dir, exist_ok=True)
+        rospy.loginfo(f"Logging directory: {self.log_dir}")
 
         # -------- Load configuration and model --------
         config_path = "/catkin_ws/src/obj_manipulation/obj_manipulation/grasp/config/config.toml"
@@ -80,14 +79,7 @@ class GraspEstimationNode:
     # ------------------ Main Prediction ------------------
 
     def try_predict_grasp(self):
-        if self.rgb_image is None:
-            rospy.logwarn("RGB image not received yet.")
-            return
-        if self.depth_image is None:
-            rospy.logwarn("Depth image not received yet.")
-            return
-        if self.camera_intrinsics is None:
-            rospy.logwarn("Camera intrinsics not received yet.")
+        if self.rgb_image is None or self.depth_image is None or self.camera_intrinsics is None:
             return
 
         rospy.loginfo("Starting grasp prediction pipeline...")
@@ -95,7 +87,14 @@ class GraspEstimationNode:
         # Step 1: Convert depth → XYZ point cloud
         rospy.loginfo("Converting depth map to XYZ point cloud...")
         xyz_img = depth_map_to_xyz(self.depth_image, self.camera_intrinsics)
+        # Convert numpy array to torch tensor (float32)
+        # xyz_img = torch.from_numpy(xyz_img).float().to(self.grasp_est.device)
         rospy.loginfo("Depth map converted to XYZ successfully.")
+
+        # Optional: save first 10 point clouds
+        if self.saved_clouds < self.max_saved:
+            self.save_point_cloud(xyz_img)
+            self.saved_clouds += 1
 
         # Step 2: Run model
         rospy.loginfo("Running grasp estimation model...")
@@ -120,31 +119,36 @@ class GraspEstimationNode:
         self.publish_marker(best_pose)
         rospy.loginfo("Grasp pose and marker published successfully.")
 
-        # Step 5: Save first 10 grasps to file
-        self.save_grasp_pose(best_pose)
+        # Step 5: Save first 10 best grasp poses
+        if len(self.saved_grasps) < self.max_saved:
+            self.save_grasp_pose(best_pose)
 
-    # ------------------ Grasp Saving ------------------
+    # ------------------ Data Saving ------------------
+
+    def save_point_cloud(self, xyz_img):
+        """Save point cloud as .ply file."""
+        try:
+            points = xyz_img.reshape(-1, 3)
+            mask = np.isfinite(points).all(axis=1)
+            points = points[mask]
+
+            cloud = o3d.geometry.PointCloud()
+            cloud.points = o3d.utility.Vector3dVector(points)
+
+            path = os.path.join(self.log_dir, f"pointcloud_{self.saved_clouds + 1:02d}.ply")
+            o3d.io.write_point_cloud(path, cloud)
+            rospy.loginfo(f"Saved point cloud #{self.saved_clouds + 1} to: {path}")
+        except Exception as e:
+            rospy.logwarn(f"Error saving point cloud: {e}")
 
     def save_grasp_pose(self, grasp_matrix):
-        """Save up to the first N grasp poses into a text file."""
+        """Save grasp pose as .npy file."""
         try:
-            if len(self.saved_grasps) < self.max_saved:
-                self.saved_grasps.append(grasp_matrix)
-                np.savetxt(
-                    self.output_path,
-                    np.array(self.saved_grasps).reshape(-1, 4, 4),
-                    fmt="%.6f"
-                )
-                rospy.loginfo(f"Saved grasp pose {len(self.saved_grasps)}/{self.max_saved} to {self.output_path}")
-
-                # Optional: save timestamped backup too
-                timestamp = rospy.get_time()
-                backup_path = f"/catkin_ws/src/obj_manipulation/grasp_poses_{int(timestamp)}.txt"
-                np.savetxt(backup_path, grasp_matrix, fmt="%.6f")
-            else:
-                # Only log after the limit
-                if len(self.saved_grasps) == self.max_saved:
-                    rospy.loginfo("Reached maximum saved grasps. Further poses will not be logged.")
+            idx = len(self.saved_grasps) + 1
+            self.saved_grasps.append(grasp_matrix)
+            path = os.path.join(self.log_dir, f"grasp_pose_{idx:02d}.npy")
+            np.save(path, grasp_matrix)
+            rospy.loginfo(f"Saved grasp pose #{idx} to: {path}")
         except Exception as e:
             rospy.logwarn(f"Error saving grasp pose: {e}")
 
@@ -203,18 +207,16 @@ class GraspEstimationNode:
         marker.pose.orientation.w = qw
 
         # Marker size and color
-        marker.scale.x = 0.15  # arrow length
-        marker.scale.y = 0.04  # shaft width
-        marker.scale.z = 0.04  # head size
+        marker.scale.x = 0.15
+        marker.scale.y = 0.04
+        marker.scale.z = 0.04
         marker.color.r = 0.0
         marker.color.g = 1.0
         marker.color.b = 0.0
-        marker.color.a = 1.0  # fully opaque
-
+        marker.color.a = 1.0
         marker.lifetime = rospy.Duration(1.0)
         self.marker_pub.publish(marker)
 
-    # --------------------------------------------------
 
 if __name__ == '__main__':
     try:
