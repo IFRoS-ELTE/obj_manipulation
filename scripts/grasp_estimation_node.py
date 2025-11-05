@@ -9,6 +9,7 @@ from cv_bridge import CvBridge
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker
+from std_msgs.msg import Bool  # Added for trigger control
 from obj_manipulation.grasp import GraspEstimatorCGN
 from obj_manipulation.grasp.utils import depth_map_to_xyz, load_config
 
@@ -29,7 +30,6 @@ class GraspEstimationNode:
         self.max_saved = 10
         self.log_dir = "/catkin_ws/src/obj_manipulation/data_logs"
 
-        # Create log directory if missing
         os.makedirs(self.log_dir, exist_ok=True)
         rospy.loginfo(f"Logging directory: {self.log_dir}")
 
@@ -50,6 +50,13 @@ class GraspEstimationNode:
         self.depth_sub = rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.depth_callback)
         self.cam_info_sub = rospy.Subscriber("/camera/depth/camera_info", CameraInfo, self.cam_info_callback)
 
+        # Trigger subscriber
+        self.allow_publish = False
+        self.trigger_sub = rospy.Subscriber(
+            "/grasp_estimation_node/trigger", Bool, self.trigger_callback
+        )
+        rospy.loginfo("Subscribed to /grasp_estimation_node/trigger for one-shot control.")
+
         # -------- Publishers --------
         self.pose_pub = rospy.Publisher("/grasp_estimation_node/grasp_pose", PoseStamped, queue_size=10)
         self.marker_pub = rospy.Publisher("/grasp_estimation_node/marker", Marker, queue_size=10)
@@ -57,8 +64,14 @@ class GraspEstimationNode:
 
         rospy.loginfo("Initialization complete. Waiting for camera data...")
 
-    # ------------------ Callbacks ------------------
+    # ------------------ Trigger Control ------------------
+    def trigger_callback(self, msg):
+        """Enable grasp estimation when a Bool trigger (data: true) is received."""
+        if msg.data:
+            self.allow_publish = True
+            rospy.loginfo("Received trigger signal — grasp estimation enabled for one run.")
 
+    # ------------------ Callbacks ------------------
     def cam_info_callback(self, msg):
         K = np.array(msg.K).reshape(3, 3)
         self.camera_intrinsics = K
@@ -71,14 +84,19 @@ class GraspEstimationNode:
     def depth_callback(self, msg):
         depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
         if depth.dtype != np.float32:
-            depth = depth.astype(np.float32) / 1000.0  # convert mm → meters
+     ########################    Remove 1000 if needed  ################################################
+            depth = depth.astype(np.float32) / 1000.0  # convert mm → meters 
+            # depth = depth.astype(np.float32)
+
         self.depth_image = depth
         rospy.loginfo_once("Received first depth image.")
         self.try_predict_grasp()
 
     # ------------------ Main Prediction ------------------
-
     def try_predict_grasp(self):
+        if not self.allow_publish:
+            return  # Skip if no trigger yet
+
         if self.rgb_image is None or self.depth_image is None or self.camera_intrinsics is None:
             return
 
@@ -87,8 +105,6 @@ class GraspEstimationNode:
         # Step 1: Convert depth → XYZ point cloud
         rospy.loginfo("Converting depth map to XYZ point cloud...")
         xyz_img = depth_map_to_xyz(self.depth_image, self.camera_intrinsics)
-        # Convert numpy array to torch tensor (float32)
-        # xyz_img = torch.from_numpy(xyz_img).float().to(self.grasp_est.device)
         rospy.loginfo("Depth map converted to XYZ successfully.")
 
         # Optional: save first 10 point clouds
@@ -98,17 +114,14 @@ class GraspEstimationNode:
 
         # Step 2: Run model
         rospy.loginfo("Running grasp estimation model...")
-        try:
-            with torch.no_grad():
-                result = self.grasp_est.predict_grasps(xyz_img, self.rgb_image)
-            rospy.loginfo("Grasp estimation model finished inference.")
-        except Exception as e:
-            rospy.logerr(f"Error during model inference: {e}")
-            return
+        with torch.no_grad():
+            result = self.grasp_est.predict_grasps(xyz_img, self.rgb_image)
+        rospy.loginfo("Grasp estimation model finished inference.")
 
         # Step 3: Extract best grasp
         if result is None or "pred_grasps" not in result or len(result["pred_grasps"]) == 0:
             rospy.logwarn("No valid grasps predicted.")
+            self.allow_publish = False
             return
 
         best_pose = result["pred_grasps"][0]
@@ -123,8 +136,13 @@ class GraspEstimationNode:
         if len(self.saved_grasps) < self.max_saved:
             self.save_grasp_pose(best_pose)
 
-    # ------------------ Data Saving ------------------
+        # Step 6: Disable further publishing until next trigger
+        self.allow_publish = False
+        #rospy.loginfo("Grasp estimation disabled until next trigger signal.")
+        rospy.loginfo(f"Grasp estimation run complete at {rospy.get_time():.2f}. Waiting for next trigger.")
 
+
+    # ------------------ Data Saving ------------------
     def save_point_cloud(self, xyz_img):
         """Save point cloud as .ply file."""
         try:
@@ -153,7 +171,6 @@ class GraspEstimationNode:
             rospy.logwarn(f"Error saving grasp pose: {e}")
 
     # ------------------ Publishing ------------------
-
     def publish_grasp_pose(self, grasp_matrix):
         """Publish the grasp as a PoseStamped message."""
         pose_msg = PoseStamped()
