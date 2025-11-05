@@ -184,9 +184,11 @@ class InstanceSegmentationRRN(InstanceSegmentationBase):
         """
         # Get local crops around each object
         obj_rgbs, obj_masks, obj_bboxes = self._rrn_preprocess(rgb_img, init_mask)
+        n_objs = obj_rgbs.shape[0]
+        if n_objs == 0:
+            return init_mask, None
         
         # Run all object crops through RRN model
-        n_objs = obj_rgbs.shape[0]
         step_size = min(128, n_objs)
         for b in range(0, n_objs, step_size):
             obj_logits = self.rrn(

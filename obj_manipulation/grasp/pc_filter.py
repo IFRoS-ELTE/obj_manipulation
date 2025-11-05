@@ -40,7 +40,7 @@ class PointCloudFilter:
         xyz_img: ndarray,
         rgb_img: Optional[ndarray],
         n_points: int = 20_000,
-    ) -> Tuple[FloatTensor, FloatTensor]:
+    ) -> Tuple[Optional[FloatTensor], Optional[FloatTensor]]:
         """Produce filtered PC from input xyz depth image around a single object.
         
         Args:
@@ -67,7 +67,7 @@ class PointCloudFilter:
         # Exit early if all objects failed check
         if obj_mask is None:
             warnings.warn("Point cloud filter failed to find suitable object.")
-            return np.zeros((n_points, 3)), np.zeros((n_points, 3))
+            return None, None
         
         # Compute closest estimate to bounding box that encompasses the chosen object
         # and has n_points within it then extract it out of xyz depth image

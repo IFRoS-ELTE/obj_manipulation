@@ -121,6 +121,8 @@ class GraspEstimatorCGN(GraspEstimatorBase):
         xyz_pc, xyz_object_pc = self.pc_filter.filter_point_cloud(
             xyz_img, rgb_img, n_points=self.n_input_points
         )
+        if xyz_pc is None or xyz_object_pc is None:
+            return None
 
         # Get grasp predictions for object using model
         pred = self._predict_grasps(xyz_pc)
