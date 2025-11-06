@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
-import rospy
-import numpy as np
-import cv2
-import torch
+
 import os
+
+import numpy as np
 import open3d as o3d
+from numpy.typing import NDArray
+
+import rospy
 from cv_bridge import CvBridge
-from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped
+from sensor_msgs.msg import CameraInfo, Image
+from std_msgs.msg import Bool
 from visualization_msgs.msg import Marker
-from std_msgs.msg import Bool  # Added for trigger control
+
 from obj_manipulation.grasp import GraspEstimatorCGN
-from obj_manipulation.grasp.utils import depth_map_to_xyz, load_config
+from obj_manipulation.grasp.utils import (
+    depth_map_to_xyz,
+    load_config,
+)
+from obj_manipulation.grasp.utils.utils_visualization import visualize_grasps
 
 
 class GraspEstimationNode:
@@ -21,7 +28,7 @@ class GraspEstimationNode:
 
         self.bridge = CvBridge()
         self.rgb_image = None
-        self.depth_image = None
+        self.xyz_image = None
         self.camera_intrinsics = None
 
         # -------- Logging Configuration --------
@@ -35,14 +42,20 @@ class GraspEstimationNode:
 
         # -------- Load configuration and model --------
         config_path = "/catkin_ws/src/obj_manipulation/obj_manipulation/grasp/config/config.toml"
+        assert os.path.exists(config_path)
         rospy.loginfo(f"Loading configuration from: {config_path}")
-        self.config = load_config(config_path)
+        config = load_config(config_path)
+        self.gripper_depth = config["gripper_depth"]
 
         rospy.loginfo("Initializing grasp estimator...")
-        self.grasp_est = GraspEstimatorCGN(self.config)
+        self.grasp_est = GraspEstimatorCGN(config)
         self.grasp_est.load()
         self.grasp_est.eval_mode()
         rospy.loginfo("Grasp estimator model loaded and ready.")
+
+        # -------- Load node parameters --------
+        self.max_trials = rospy.get_param("/grasp_estimation_node/max_trials", 4)
+        self.visualize_grasps = rospy.get_param("/grasp_estimation_node/visualize_grasps", False)
 
         # -------- Subscribers --------
         rospy.loginfo("Subscribing to camera topics...")
@@ -51,7 +64,6 @@ class GraspEstimationNode:
         self.cam_info_sub = rospy.Subscriber("/camera/depth/camera_info", CameraInfo, self.cam_info_callback)
 
         # Trigger subscriber
-        self.allow_publish = False
         self.trigger_sub = rospy.Subscriber(
             "/grasp_estimation_node/trigger", Bool, self.trigger_callback
         )
@@ -64,82 +76,99 @@ class GraspEstimationNode:
 
         rospy.loginfo("Initialization complete. Waiting for camera data...")
 
+    @property
+    def ready_to_publish(self) -> bool:
+        ready = all([
+            self.rgb_image is not None,
+            self.xyz_image is not None,
+        ])
+        return ready
+    
     # ------------------ Trigger Control ------------------
-    def trigger_callback(self, msg):
+    def trigger_callback(self, msg: Bool) -> None:
         """Enable grasp estimation when a Bool trigger (data: true) is received."""
-        if msg.data:
-            self.allow_publish = True
+        if msg.data and self.ready_to_publish:
             rospy.loginfo("Received trigger signal — grasp estimation enabled for one run.")
+            self.try_predict_grasp()
 
     # ------------------ Callbacks ------------------
-    def cam_info_callback(self, msg):
+    def cam_info_callback(self, msg: CameraInfo) -> None:
         K = np.array(msg.K).reshape(3, 3)
         self.camera_intrinsics = K
         rospy.loginfo_once("Received camera intrinsics.")
 
-    def rgb_callback(self, msg):
+    def rgb_callback(self, msg: Image) -> None:
         self.rgb_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
         rospy.loginfo_once("Received first RGB image.")
 
-    def depth_callback(self, msg):
-        depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
-        if depth.dtype != np.float32:
-     ########################    Remove 1000 if needed  ################################################
-            depth = depth.astype(np.float32) / 1000.0  # convert mm → meters 
-            # depth = depth.astype(np.float32)
-
-        self.depth_image = depth
-        rospy.loginfo_once("Received first depth image.")
-        self.try_predict_grasp()
+    def depth_callback(self, msg: Image) -> None:
+        if self.camera_intrinsics is not None:    
+            self.depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+            if msg.encoding == "16UC1":
+                self.depth = self.depth.astype(np.float32) / 1000.0  # convert mm → meters 
+            self.xyz_image = depth_map_to_xyz(self.depth, self.camera_intrinsics)
+            rospy.loginfo_once("Received first xyz image.")
 
     # ------------------ Main Prediction ------------------
     def try_predict_grasp(self):
-        if not self.allow_publish:
-            return  # Skip if no trigger yet
-
-        if self.rgb_image is None or self.depth_image is None or self.camera_intrinsics is None:
-            return
-
         rospy.loginfo("Starting grasp prediction pipeline...")
 
-        # Step 1: Convert depth → XYZ point cloud
-        rospy.loginfo("Converting depth map to XYZ point cloud...")
-        xyz_img = depth_map_to_xyz(self.depth_image, self.camera_intrinsics)
-        rospy.loginfo("Depth map converted to XYZ successfully.")
+        # # Optional: save first 10 point clouds
+        # if self.saved_clouds < self.max_saved:
+        #     self.save_point_cloud(xyz_img)
+        #     self.saved_clouds += 1
 
-        # Optional: save first 10 point clouds
-        if self.saved_clouds < self.max_saved:
-            self.save_point_cloud(xyz_img)
-            self.saved_clouds += 1
-
-        # Step 2: Run model
+        # Step 1: Run model
         rospy.loginfo("Running grasp estimation model...")
-        with torch.no_grad():
-            result = self.grasp_est.predict_grasps(xyz_img, self.rgb_image)
+        for _ in range(self.max_trials):
+            result = self.grasp_est.predict_grasps(self.xyz_image, self.rgb_image)
+            if result is not None:
+                break
         rospy.loginfo("Grasp estimation model finished inference.")
 
-        # Step 3: Extract best grasp
+        # Step 2: Extract best grasp
         if result is None or "pred_grasps" not in result or len(result["pred_grasps"]) == 0:
             rospy.logwarn("No valid grasps predicted.")
-            self.allow_publish = False
             return
-
         best_pose = result["pred_grasps"][0]
         rospy.loginfo("Best grasp pose extracted (index 0).")
 
-        # Step 4: Publish Pose + Marker
+        # Step 3: Publish Pose + Marker
         self.publish_grasp_pose(best_pose)
         self.publish_marker(best_pose)
         rospy.loginfo("Grasp pose and marker published successfully.")
 
-        # Step 5: Save first 10 best grasp poses
-        if len(self.saved_grasps) < self.max_saved:
-            self.save_grasp_pose(best_pose)
+        # Step 4: Optionally visualize grasps in 3D
+        if self.visualize_grasps:
+            self.visualize_grasps_open3d(result)
 
-        # Step 6: Disable further publishing until next trigger
-        self.allow_publish = False
-        #rospy.loginfo("Grasp estimation disabled until next trigger signal.")
+        # Step 5: Save first 10 best grasp poses
+        # if len(self.saved_grasps) < self.max_saved:
+        #     self.save_grasp_pose(best_pose)
+
         rospy.loginfo(f"Grasp estimation run complete at {rospy.get_time():.2f}. Waiting for next trigger.")
+
+    # ------------------ Grasp Visualization ------------------
+    def visualize_grasps_open3d(self, grasp_pred: dict[str, NDArray]) -> None:
+        # Filter xyz and rgb data according to depth mask used by grasp predictor
+        depth_mask = np.logical_and(
+            self.depth > self.grasp_est.min_depth,
+            self.depth < self.grasp_est.max_depth,
+        )
+        if not np.any(depth_mask):
+            return
+        xyz_pc = self.xyz_image[depth_mask]
+        rgb_pc = self.rgb_image[depth_mask]
+
+        # Visualize grasps using Open3D
+        visualize_grasps(
+            xyz_pc,
+            rgb_pc,
+            [grasp_pred["pred_grasps"]],
+            [grasp_pred["pred_scores"]],
+            [grasp_pred["pred_widths"]],
+            self.gripper_depth
+        )
 
 
     # ------------------ Data Saving ------------------
