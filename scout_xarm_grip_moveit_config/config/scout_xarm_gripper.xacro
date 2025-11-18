@@ -7,7 +7,7 @@
     <xacro:include filename="$(find scout_xarm_description)/scout_urdf/scout_v2.xacro" />
     <xacro:include filename="$(find scout_xarm_description)/xarm6_urdf/xarm6_robot.urdf.xacro"/>
     <xacro:include filename="$(find scout_xarm_base)/urdf/scout_xarm_base.xacro"/>
-    <xacro:include filename="$(find xarm_gripper)/urdf/xarm_gripper_model.xacro"/>  
+    <xacro:include filename="$(find xarm_gripper)/urdf/xarm_gripper_model.xacro"/>
 
   <xacro:arg name="prefix" default=""/>
   <xacro:arg name="ros_namespace" default="xarm"/>
@@ -39,7 +39,6 @@
       <child
         link="base_link" />
     </joint>
-    <!-- Load xarm gripper attached to link_eef -->
     <xacro:load_gripper attach_to="link_eef" effort_control="$(arg effort_control)" velocity_control="$(arg velocity_control)"/>
 
     <joint
@@ -65,14 +64,6 @@
         link="base_link" />
       <child
         link="box_link" />
-    </joint>
-
-    <!-- Create a new end effector link for MoveIt interactive marker -->
-    <link name="moveit_eef"/>
-    <joint name="moveit_eef_joint" type="fixed">
-      <origin rpy="0 0 0" xyz="0.0 0.0 0.2"/>
-      <parent link="link_eef"/>
-      <child link="moveit_eef"/>
     </joint>
 
     </robot>

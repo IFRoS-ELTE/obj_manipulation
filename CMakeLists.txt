@@ -51,7 +51,9 @@ set(NESTED_PACKAGES
   "scout_xarm/xarm_ros/xarm6_gripper_moveit_config"
   # "scout_xarm/xarm_ros/xarm_gripper"
   "scout_xarm_grip_moveit_config"
-  # "scout_xarm/xarm_ros/xarm_api"
+  "scout_xarm/xarm_ros/xarm_api"
+  # "scout_xarm/xarm_ros/xarm_sdk"
+  "scout_xarm/xarm_ros/xarm_msgs"
 )
 
 foreach(pkg IN LISTS NESTED_PACKAGES)

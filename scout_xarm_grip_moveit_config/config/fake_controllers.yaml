@@ -11,12 +11,9 @@ controller_list:
   - name: fake_gripper_controller
     type: $(arg fake_execution_type)
     joints:
-      - finger_joint
-      - right_crank_joint
-      - left_proximal_phalanx_joint
-      - right_proximal_phalanx_joint
+      - drive_joint
 initial:  # Define initial robot poses.
   - group: xarm6
     pose: home
-  - group: gripper
+  - group: xarm_gripper
     pose: open

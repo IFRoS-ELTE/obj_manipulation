@@ -1,0 +1,8 @@
+// Intentionally ignore building xarm_controller inside Melodic container when ros_control deps are unavailable
+
+
+
+
+
+
+

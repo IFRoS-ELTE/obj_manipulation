@@ -19,6 +19,8 @@
   <arg name="max_safe_path_cost" default="1"/>
   <arg name="jiggle_fraction" default="0.05" />
   <arg name="publish_monitored_planning_scene" default="true"/>
+  <!-- whether or not to load a moveit controller for gripper -->
+  <arg name="gripper_controller" default="false" />
 
   <arg name="capabilities" default=""/>
   <arg name="disable_capabilities" default=""/>
@@ -57,6 +59,7 @@
     <arg name="moveit_controller_manager" value="scout_with_xarm6" unless="$(arg fake_execution)"/>
     <arg name="moveit_controller_manager" value="fake" if="$(arg fake_execution)"/>
     <arg name="fake_execution_type" value="$(arg fake_execution_type)" />
+    <arg name="gripper_controller" value="$(arg gripper_controller)"/>
   </include>
 
   <!-- Sensors Functionality -->

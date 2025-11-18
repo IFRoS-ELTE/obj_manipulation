@@ -13,8 +13,5 @@ controller_list:
     action_ns: follow_joint_trajectory
     type: FollowJointTrajectory
     joints:
-      - finger_joint
-      - right_crank_joint
-      - left_proximal_phalanx_joint
-      - right_proximal_phalanx_joint
+      - drive_joint
 

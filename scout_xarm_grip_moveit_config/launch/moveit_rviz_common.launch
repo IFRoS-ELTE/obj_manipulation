@@ -23,6 +23,8 @@
   <arg name="NO_GUI_CTRL" default="false"/>
   <!-- option to show rviz or not -->
   <arg name="show_rviz" default="true" />
+  <!-- whether or not to load a moveit controller for gripper -->
+  <arg name="gripper_controller" default="false" />
 
   <arg name="add_other_geometry" default="false"/>
   <arg name="geometry_type" default="box"/>
@@ -73,6 +75,7 @@
     <arg name="fake_execution" value="$(arg fake_execution)"/>
     <arg name="info" value="true"/>
     <arg name="debug" value="$(arg debug)"/>
+    <arg name="gripper_controller" value="$(arg gripper_controller)"/>
   </include>
 
   <!-- Run Rviz and load the default config to see the state of the move_group node -->
