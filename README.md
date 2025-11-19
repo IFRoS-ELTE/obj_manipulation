@@ -36,7 +36,7 @@ Notes:
 - GUI/RViz supported via `--gpus all` and X11 mount.
 
 ## Objective  
-The goal of this project is to enable a UR3 robotic arm to autonomously **detect, grasp, and place previously unseen rigid objects** into a basket. Using RGB-D perception, grasp planning, motion planning, and feedback control, the system aims to generalize across a wide variety of object shapes, sizes, and materials.  
+The goal of this project is to enable the XArm6 on the Scout base to autonomously detect, grasp, and place previously unseen rigid objects into a basket. Using RGB‑D perception, grasp planning, motion planning, and feedback control, the system aims to generalize across a wide variety of object shapes, sizes, and materials.
 
 # Docker Setup
 This project uses Docker with NVIDIA GPU support for ROS1 Noetic development.
