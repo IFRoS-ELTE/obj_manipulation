@@ -24,4 +24,4 @@ subsample_factor = 5
 feature_dim = 64
 crop_size = [224, 224]
 crop_pad_perc = 0.25
-foreground_thresh = 0.5
+foreground_thresh = 0.7

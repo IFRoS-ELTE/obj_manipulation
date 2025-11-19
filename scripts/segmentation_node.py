@@ -47,8 +47,8 @@ class InstanceSegmentationNode:
 
         # -------- Subscribers --------
         rgb_topic_name = "/camera/color/image_raw"
-        depth_topic_name = "/camera/depth/image_rect_raw"
-        cam_info_topic_name = "/camera/depth/camera_info"
+        depth_topic_name = "/camera/aligned_depth_to_color/image_raw"
+        cam_info_topic_name = "/camera/aligned_depth_to_color/camera_info"
 
         self.rgb_sub = rospy.Subscriber(
             rgb_topic_name, Image, self.rgb_callback, queue_size=1
@@ -74,13 +74,13 @@ class InstanceSegmentationNode:
     
     @staticmethod
     def _get_color_mask(seg_mask: NDArray[np.int32]) -> NDArray[np.uint8]:
-        n_objs = seg_mask.max()
+        n_objs = seg_mask.max() - 1
         cm = plt.get_cmap('gist_rainbow')
         colors = [cm(1. * i/n_objs) for i in range(n_objs)]
 
         color_mask = np.zeros(seg_mask.shape + (3,), dtype=np.uint8)
         for i in range(n_objs):
-            color_mask[seg_mask == (i + 1), :] = np.array(colors[i][:3]) * 255
+            color_mask[seg_mask == (i + 2), :] = np.array(colors[i][:3]) * 255
         return color_mask
 
     def cam_info_callback(self, msg: CameraInfo) -> None:
@@ -116,7 +116,11 @@ class InstanceSegmentationNode:
     def publish_seg_mask(self, seg_mask: NDArray[np.int32]):
         # Get color mask and blend it with input RGB image
         color_mask = self._get_color_mask(seg_mask)
-        seg_image = self.alpha * color_mask + (1 - self.alpha) * self.rgb_image
+        seg_image = np.where(
+            color_mask,
+            self.alpha * color_mask + (1 - self.alpha) * self.rgb_image,
+            self.rgb_image,
+        ).astype(np.uint8)
 
         # Convert from NumPy to ROS Image
         header = Header()
@@ -134,7 +138,10 @@ def main():
     while not rospy.is_shutdown():
         if node.ready_to_publish:
             seg_mask = node.get_seg_mask()
-            node.publish_seg_mask(seg_mask)
+            if seg_mask is not None:
+                node.publish_seg_mask(seg_mask)
+            else:
+                rospy.logwarn("No objects detected in image")
         rate.sleep()
 
 

@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
 import os
+from typing import Dict
 
 import numpy as np
 import open3d as o3d
 from numpy.typing import NDArray
+from scipy.spatial.transform import Rotation as R
 
 import rospy
+import tf2_ros
+import tf2_geometry_msgs
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
@@ -54,14 +58,24 @@ class GraspEstimationNode:
         rospy.loginfo("Grasp estimator model loaded and ready.")
 
         # -------- Load node parameters --------
-        self.max_trials = rospy.get_param("/grasp_estimation_node/max_trials", 4)
-        self.visualize_grasps = rospy.get_param("/grasp_estimation_node/visualize_grasps", False)
+        self.max_trials = rospy.get_param("/grasp_estimation_node/max_trials", 10)
+        self.visualize_grasps = rospy.get_param("/grasp_estimation_node/visualize_grasps", True)
+
+        # -------- TF2 Setup ---------
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
         # -------- Subscribers --------
         rospy.loginfo("Subscribing to camera topics...")
-        self.rgb_sub = rospy.Subscriber("/camera/color/image_raw", Image, self.rgb_callback)
-        self.depth_sub = rospy.Subscriber("/camera/depth/image_rect_raw", Image, self.depth_callback)
-        self.cam_info_sub = rospy.Subscriber("/camera/depth/camera_info", CameraInfo, self.cam_info_callback)
+        self.rgb_sub = rospy.Subscriber(
+            "/camera/color/image_raw", Image, self.rgb_callback
+        )
+        self.depth_sub = rospy.Subscriber(
+            "/camera/aligned_depth_to_color/image_raw", Image, self.depth_callback
+        )
+        self.cam_info_sub = rospy.Subscriber(
+            "/camera/aligned_depth_to_color/camera_info", CameraInfo, self.cam_info_callback
+        )
 
         # Trigger subscriber
         self.trigger_sub = rospy.Subscriber(
@@ -131,7 +145,6 @@ class GraspEstimationNode:
             rospy.logwarn("No valid grasps predicted.")
             return
         best_pose = result["pred_grasps"][0]
-        rospy.loginfo("Best grasp pose extracted (index 0).")
 
         # Step 3: Publish Pose + Marker
         self.publish_grasp_pose(best_pose)
@@ -149,7 +162,7 @@ class GraspEstimationNode:
         rospy.loginfo(f"Grasp estimation run complete at {rospy.get_time():.2f}. Waiting for next trigger.")
 
     # ------------------ Grasp Visualization ------------------
-    def visualize_grasps_open3d(self, grasp_pred: dict[str, NDArray]) -> None:
+    def visualize_grasps_open3d(self, grasp_pred: Dict[str, NDArray]) -> None:
         # Filter xyz and rgb data according to depth mask used by grasp predictor
         depth_mask = np.logical_and(
             self.depth > self.grasp_est.min_depth,
@@ -204,7 +217,6 @@ class GraspEstimationNode:
         """Publish the grasp as a PoseStamped message."""
         pose_msg = PoseStamped()
         pose_msg.header.stamp = rospy.Time.now()
-        pose_msg.header.frame_id = "camera_link"
 
         # Translation
         pose_msg.pose.position.x = grasp_matrix[0, 3]
@@ -212,17 +224,29 @@ class GraspEstimationNode:
         pose_msg.pose.position.z = grasp_matrix[2, 3]
 
         # Rotation matrix → Quaternion
-        rot = grasp_matrix[:3, :3]
-        qw = np.sqrt(1.0 + rot[0, 0] + rot[1, 1] + rot[2, 2]) / 2.0
-        qx = (rot[2, 1] - rot[1, 2]) / (4.0 * qw)
-        qy = (rot[0, 2] - rot[2, 0]) / (4.0 * qw)
-        qz = (rot[1, 0] - rot[0, 1]) / (4.0 * qw)
+        quat = R.from_matrix(grasp_matrix[:3, :3]).as_quat()
+        pose_msg.pose.orientation.x = quat[0]
+        pose_msg.pose.orientation.y = quat[1]
+        pose_msg.pose.orientation.z = quat[2]
+        pose_msg.pose.orientation.w = quat[3]
 
-        pose_msg.pose.orientation.x = qx
-        pose_msg.pose.orientation.y = qy
-        pose_msg.pose.orientation.z = qz
-        pose_msg.pose.orientation.w = qw
-
+        # Transform pose to base link
+        try:
+            transform = self.tf_buffer.lookup_transform(
+                "base_link",                    # target frame
+                "camera_color_optical_frame",   # source frame
+                rospy.Time(0),                  # latest available transform
+                rospy.Duration(secs=1),         # timeout duration
+            )
+        except (
+            tf2_ros.LookupException,
+            tf2_ros.ConnectivityException,
+            tf2_ros.ExtrapolationException,
+        ) as e:
+            rospy.logwarn(f"Failed to fetch tf2 transform to base link due to error: {e}")
+            return
+        pose_msg = tf2_geometry_msgs.do_transform_pose(pose_msg, transform)
+        
         self.pose_pub.publish(pose_msg)
         rospy.loginfo("Published PoseStamped message on /grasp_estimation_node/grasp_pose.")
 
@@ -230,7 +254,7 @@ class GraspEstimationNode:
         """Publish a 3D arrow marker in RViz at the grasp pose."""
         marker = Marker()
         marker.header.stamp = rospy.Time.now()
-        marker.header.frame_id = "camera_link"
+        marker.header.frame_id = "camera_color_optical_frame"
         marker.ns = "grasp_marker"
         marker.id = 0
         marker.type = Marker.ARROW
@@ -241,16 +265,11 @@ class GraspEstimationNode:
         marker.pose.position.y = grasp_matrix[1, 3]
         marker.pose.position.z = grasp_matrix[2, 3]
 
-        rot = grasp_matrix[:3, :3]
-        qw = np.sqrt(1.0 + rot[0, 0] + rot[1, 1] + rot[2, 2]) / 2.0
-        qx = (rot[2, 1] - rot[1, 2]) / (4.0 * qw)
-        qy = (rot[0, 2] - rot[2, 0]) / (4.0 * qw)
-        qz = (rot[1, 0] - rot[0, 1]) / (4.0 * qw)
-
-        marker.pose.orientation.x = qx
-        marker.pose.orientation.y = qy
-        marker.pose.orientation.z = qz
-        marker.pose.orientation.w = qw
+        quat = R.from_matrix(grasp_matrix[:3, :3]).as_quat()
+        marker.pose.orientation.x = quat[0]
+        marker.pose.orientation.y = quat[1]
+        marker.pose.orientation.z = quat[2]
+        marker.pose.orientation.w = quat[3]
 
         # Marker size and color
         marker.scale.x = 0.15
