@@ -222,11 +222,31 @@ Start
 
 ## Unseen Object Instance Segmentation
 To use the instance segmentation module, follow the instructions given inside the following [`README.md`](./obj_manipulation/segment/models/README.md) to download its pre-trained weights.
-Then, follow the instructions inside the following [`README.md`](./tests/segment/examples/README.md) to verify that it works as expected.
+Afterwards, you can follow the instructions inside the following [`README.md`](./tests/segment/examples/README.md) to verify that it works as expected.
+
+Typically during normal operation, the instance segmentation module's output is used internally by the grasp predition node and is not exposed to the user. However, for debugging, you can launch the following node which performs instance segmentation and publishes the segmented image result to the topic `/instance_segmentation/seg_mask` as a `sensor_msgs/Image` ROS message.
+
+```bash
+rosrun obj_manipulation segmentation_node.py
+```
 
 ## Grasp Estimation using Contact-GraspNet
 Similar to the instance segmentation module, follow the instructions given inside the following [`README.md`](./obj_manipulation/grasp/models/README.md) to download its pre-trained weights.
-Then, follow the instructions inside the following [`README.md`](./tests/grasp/examples/README.md) to verify that it works as expected.
+Afterwards, you can follow the instructions inside the following [`README.md`](./tests/grasp/examples/README.md) to verify that it works as expected.
+
+To use the grasp estimation module with real live data, launch the following node.
+
+```bash
+rosrun obj_manipulation grasp_estimation_node.py
+```
+
+The grasp estimation node always stores the latest received RGB and Depth images but does not perform grasp prediction until it is explicity triggered.
+This design choice was taken since grasp prediction should not be a repeating operation that takes place at the same update rate of the sensors.
+To trigger a grasp predicition attempt using the latest stored images, use the following command or explicity publish to this topic from another ROS node.
+
+```bash
+rostopic pub /grasp_estimation_node/trigger std_msgs/Bool "data: true"
+```
 
 ## Troubleshooting
 - If RViz/MoveIt cannot load gripper meshes like `package://dh_robotics_ag95_model/...`:

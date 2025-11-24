@@ -59,7 +59,7 @@ class GraspEstimationNode:
 
         # -------- Load node parameters --------
         self.max_trials = rospy.get_param("/grasp_estimation_node/max_trials", 10)
-        self.visualize_grasps = rospy.get_param("/grasp_estimation_node/visualize_grasps", True)
+        self.visualize_grasps = rospy.get_param("/grasp_estimation_node/visualize_grasps", False)
 
         # -------- TF2 Setup ---------
         self.tf_buffer = tf2_ros.Buffer()
