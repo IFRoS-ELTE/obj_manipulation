@@ -2,86 +2,10 @@
 # Object Manipulation with XArm6 on Scout
 **Team:** Muhammad Faran Akram, Sherif Sameh, Pravin Oli, Jamin Rahman Jim  
 
-## Dual-container ROS1 (Melodic + Noetic) setup
+### Dual-container ROS1 (Melodic + Noetic) setup
 
 Run Melodic (MoveIt + drivers, Python 2) and Noetic (Python 3 workspace) side-by-side using Docker with shared ROS1 networking.
-
-### Build images
-```bash
-cd docker
-./build_image.sh
-```
-
-### Run a container
-Use a single script with a distro argument:
-```bash
-cd docker
-# Melodic (ROS master + MoveIt/drivers)
-./deploy_image.sh melodic
-
-# Noetic (Python 3 workspace)
-./deploy_image.sh noetic
-```
-
-Inside the Melodic container, start roscore or your MoveIt/driver launch. In the Noetic container, `rostopic list` should show topics from Melodic.
-
-Both containers use host networking and share `ROS_MASTER_URI` (default `http://127.0.0.1:11311`). Override if needed:
-```bash
-ROS_MASTER_URI=http://<host_ip>:11311 ./deploy_image.sh noetic
-```
-
-Notes:
-- Start Melodic roscore before Noetic tools.
-- Message/service definitions must match across Melodic/Noetic.
-- GUI/RViz supported via `--gpus all` and X11 mount.
-
-## Objective  
-The goal of this project is to enable the XArm6 on the Scout base to autonomously detect, grasp, and place previously unseen rigid objects into a basket. Using RGB‑D perception, grasp planning, motion planning, and feedback control, the system aims to generalize across a wide variety of object shapes, sizes, and materials.
-
-# Docker Setup
-This project uses Docker with NVIDIA GPU support for ROS1 Noetic development.
-
-### Prerequisites
-- Docker with NVIDIA Container Toolkit installed
-- NVIDIA GPU drivers
-- X11 forwarding support (for GUI applications)
-
-### Building the Docker Image
-
-1. **Build the ROS1 Noetic image:**
-   ```bash
-   chmod +x ./docker/build_image.sh
-   ./docker/build_image.sh
-   ```
-   This creates a Docker image named `robot` with:
-   - Ubuntu 20.04 base
-   - NVIDIA CUDA 11.4 support
-   - ROS1 Noetic desktop full
-   - Build tools (gcc, cmake, etc.)
-   - Python3 and ROS development tools
-
-### Running the Docker Container
-
-1. **Deploy and enter the container:**
-   ```bash
-   chmod +x ./docker/deploy_image.sh
-   ./docker/deploy_image.sh
-   ```
-
-2. **What happens when you run the container:**
-   - Mounts your current project directory to `/catkin_ws/src/obj_manipulation`
-   - Sets up GPU access for CUDA applications
-   - Enables X11 forwarding for GUI applications
-   - Sources ROS Noetic environment
-   - Builds the catkin workspace with `catkin_make`
-   - Starts an interactive bash shell
-
-### Opening another terminal in same container
-   ```bash
-   sudo docker ps
-   sudo docker exec -it <container ID> bash
-   ```
-
+ 
 ### Docker Compose Setup
 
 Run the dual-container setup for object manipulation:
@@ -174,8 +98,22 @@ __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia roslaunch obj_manip
 # # With joint state publisher GUI
 # roslaunch obj_manipulation scout_xarm_moveit.launch use_gui:=true
 
-# With real hardware (when available)
-roslaunch obj_manipulation scout_xarm_moveit.launch use_real_hardware:=true robot_ip:=192.168.1.102
+# With real hardware (Only in user, not in Robot)
+roslaunch obj_manipulation scout_xarm_grip_moveit.launch use_real_hardware:=true robot_ip:=192.168.1.102
+```
+
+## On Real Robot Silvanus
+```bash
+roslaunch agx_xarm_bringup scout_xarm_moveit.launch use_real_hardware:=true
+```
+
+## Use gripper:
+```bash 
+rosrun agx_xarm_pick control_gripper
+```
+## Opening Rviz in docker:
+```bash 
+rviz -d src/obj_manipulation/rviz/silvanus.rviz
 ```
 
 ## Python MoveIt Commander
@@ -184,10 +122,7 @@ source /catkin_ws/devel/setup.bash
 python src/obj_manipulation/scripts/xarm_move.py
 ```
 
-## On Real Robot
-```bash
-roslaunch agx_xarm_bringup scout_xarm_moveit.launch use_real_hardware:=true
-```
+
 ## On local machine
 ```bash
 source devel/setup.bash
@@ -204,7 +139,7 @@ python src/obj_manipulation/scripts/xarm_move.py
 ```
 
 
-High-level flow:
+## High-level flow:
 ```
 Start
  ├─ ROS init (node, MoveIt)
@@ -219,6 +154,30 @@ Start
  │           └─ else → report failure
  └─ Stop, clear, shutdown
 ```
+## Using move_node
+move_node will take the pose from grasp_estimation_node through `/grasp_estimation_node/grasp_pose` topic, show the planned trajectory and wait for execution signal on `/move_node/allow_execution`.
+
+Make sure move group is running (either on real hardware or simulation).
+1. Make sure executable is created, Inside docker:
+```bash
+chmod +x src/obj_manipulation/scripts/move_node.py 
+``` 
+2. run node (#TODO: Add node to launch file): 
+```bash 
+rosrun obj_manipulation move_node
+```
+ 
+**Subscribed Topics:**
+- `/grasp_estimation_node/grasp_pose` - Receives target grasp poses (x, y, z, quaternion)
+- `/move_node/allow_execution` - Receives execution trigger signal
+ 
+**Execution Signal Topic:** `/move_node/allow_execution`
+- **Message Type:** `std_msgs/Bool`
+- **Format:** `data: true` to execute
+- **To allow path execution:**
+  ```bash
+  rostopic pub /move_node/allow_execution std_msgs/Bool "data: true"
+  ```
 
 ## Unseen Object Instance Segmentation
 To use the instance segmentation module, follow the instructions given inside the following [`README.md`](./obj_manipulation/segment/models/README.md) to download its pre-trained weights.

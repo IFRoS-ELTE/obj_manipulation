@@ -59,7 +59,7 @@
 
     <!-- Load robot description -->
     <param name="robot_description"
-           command="$(find xacro)/xacro --inorder '$(find obj_manipulation)/src/scout_xarm_gripper.xacro' limited:=$(arg limited)"/>
+           command="$(find xacro)/xacro --inorder '$(find scout_xarm_description)/src/scout_xarm_gripper.xacro' limited:=$(arg limited)"/>
 
     <!-- Spawn robot in Gazebo -->
     <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" 
@@ -77,13 +77,31 @@
 		<arg name="robot_ip" value="$(arg robot_ip)"/>
 	</include>
   </group>
+ <!-- ========== PERCEPTION SENSORS (CAMERA + IMU + LIDAR) ========== -->
+  <group if="$(arg use_real_hardware)">
+    <!-- Static TF between base_link and camera_link -->
+    <node pkg="tf" type="static_transform_publisher" name="base_to_camera_tf"
+          args="0.06 0 0 0 0 0 link6 camera_link 100" />
 
+    <node pkg="tf" type="static_transform_publisher" name="camera_link_to_camera_depth"
+          args="0 0 0 3.14 -1.571 0 camera_link camera_depth_frame 100" />
+    
+    <node pkg="tf" type="static_transform_publisher" name="camera_link_to_aligned_camera_depth"
+          args="0 0 0 3.14 -1.571 0 camera_link camera_aligned_depth_to_color_frame 100" />
+
+    <!-- Intel RealSense camera -->
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+      <arg name="enable_color" value="true" />
+      <arg name="enable_depth" value="true" />
+      <arg name="align_depth" value="true" />
+    </include>
+  </group>
   <!-- ========== SIMULATION (NO GAZEBO) ========== -->
   <group unless="$(arg gazebo)">
     <group unless="$(arg use_real_hardware)">
       <!-- Load robot description -->
       <param name="robot_description"
-             command="$(find xacro)/xacro --inorder '$(find obj_manipulation)/src/scout_xarm_gripper.xacro' limited:=$(arg limited)"/>
+             command="$(find xacro)/xacro --inorder '$(find obj_manipulation)/scout_xarm_grip_moveit_config/config/scout_xarm_gripper.xacro' limited:=$(arg limited)"/>
 
       <!-- Joint State Publisher -->
       <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">
