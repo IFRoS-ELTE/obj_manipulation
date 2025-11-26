@@ -58,7 +58,8 @@ class GraspEstimationNode:
         rospy.loginfo("Grasp estimator model loaded and ready.")
 
         # -------- Load node parameters --------
-        self.max_trials = rospy.get_param("/grasp_estimation_node/max_trials", 10)
+        self.max_trials = rospy.get_param("/grasp_estimation_node/max_trials", 25)
+        self.approach_distance = rospy.get_param("/grasp_estimation_node/approach_distance", 0.17)
         self.visualize_grasps = rospy.get_param("/grasp_estimation_node/visualize_grasps", False)
 
         # -------- TF2 Setup ---------
@@ -141,7 +142,7 @@ class GraspEstimationNode:
         rospy.loginfo("Grasp estimation model finished inference.")
 
         # Step 2: Extract best grasp
-        if result is None or "pred_grasps" not in result or len(result["pred_grasps"]) == 0:
+        if result is None or result["pred_grasps"].shape == ():
             rospy.logwarn("No valid grasps predicted.")
             return
         best_pose = result["pred_grasps"][0]
@@ -219,6 +220,9 @@ class GraspEstimationNode:
         pose_msg.header.stamp = rospy.Time.now()
 
         # Translation
+        grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('x', np.pi/2).as_matrix()
+        grasp_matrix[:3, 3] -= grasp_matrix[:3, 0] * self.approach_distance
+
         pose_msg.pose.position.x = grasp_matrix[0, 3]
         pose_msg.pose.position.y = grasp_matrix[1, 3]
         pose_msg.pose.position.z = grasp_matrix[2, 3]
@@ -233,7 +237,7 @@ class GraspEstimationNode:
         # Transform pose to base link
         try:
             transform = self.tf_buffer.lookup_transform(
-                "base_link",                    # target frame
+                "dummy_base_link",                    # target frame
                 "camera_color_optical_frame",   # source frame
                 rospy.Time(0),                  # latest available transform
                 rospy.Duration(secs=1),         # timeout duration

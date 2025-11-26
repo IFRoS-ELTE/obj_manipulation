@@ -2,8 +2,8 @@
 # Grasp estimator module configuration parameters
 
 # Gripper physical parameters
-gripper_depth = 0.1034          # Distance from TCP to gripper fingers' center point.
-gripper_width = 0.08            # Distance between gripper fingers when fully opened.
+gripper_depth = 0.0             # Distance from TCP to gripper fingers' center point.
+gripper_width = 0.095           # Distance between gripper fingers when fully opened.
 gripper_extra_opening = 0.005   # Extra margin added to predicted gripper's width values.
 
 # Input point cloud processing parameter 
@@ -17,5 +17,5 @@ med_thresh = 5.0            # Maximum allowed absolute distance from point cloud
 # Grasp prediction filtering parameters
 grasp_conf_thresh = 0.15        # Minimum threshold for grasp confidence (success) scores.
 grasp_downsample_min = 20       # Minimum number of grasps to maintain when downsampling.
-grasp_downsample_factor = 0.25  # Factor for downsampling grasps.
+grasp_downsample_factor = 0.50  # Factor for downsampling grasps.
 filter_grasps = true            # Filter grasps so they only contain grasp within the object's point cloud.
