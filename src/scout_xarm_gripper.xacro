@@ -80,7 +80,7 @@
     <!-- Create a new end effector link for MoveIt interactive marker -->
     <link name="moveit_eef"/>
     <joint name="moveit_eef_joint" type="fixed">
-      <origin rpy="0 0 0" xyz="0.0 0.0 0.2"/>
+      <origin rpy="3.14 -1.57 0" xyz="0.0 0.0 0.17"/>
       <parent link="link_eef"/>
       <child link="moveit_eef"/>
     </joint>

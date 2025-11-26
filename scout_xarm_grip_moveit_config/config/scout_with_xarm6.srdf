@@ -51,10 +51,10 @@
         <joint name="right_proximal_phalanx_joint" value="0" />
     </group_state>
     <group_state name="close" group="gripper">
-        <joint name="finger_joint" value="0.5" />
-        <joint name="right_crank_joint" value="0.5" />
-        <joint name="left_proximal_phalanx_joint" value="0.4355565" />
-        <joint name="right_proximal_phalanx_joint" value="0.4355565" />
+        <joint name="finger_joint" value="0.62" />
+        <joint name="right_crank_joint" value="0.62" />
+        <joint name="left_proximal_phalanx_joint" value="0.54" />
+        <joint name="right_proximal_phalanx_joint" value="0.54" />
     </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
     <end_effector name="endeffector" parent_link="moveit_eef" group="gripper" parent_group="xarm6" />

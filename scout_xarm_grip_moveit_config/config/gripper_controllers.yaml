@@ -10,7 +10,7 @@ controller_list:
 
 # Gripper controller settings
 gripper_controller:
-  type: position_controllers/JointTrajectoryController
+  type: position_controllers/follow_joint_trajectory
   joints:
     - finger_joint
   constraints:

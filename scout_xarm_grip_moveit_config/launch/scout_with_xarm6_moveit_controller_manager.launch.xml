@@ -2,7 +2,18 @@
   <!-- Define the controller manager plugin to use for trajectory execution -->
   <param name="moveit_controller_manager" value="moveit_simple_controller_manager/MoveItSimpleControllerManager" />
 
-  <!-- loads controller list to the param server -->
-  <rosparam file="$(find scout_xarm_grip_moveit_config)/config/ros_controllers.yaml"/>
-  <rosparam file="$(find scout_xarm_grip_moveit_config)/config/gripper_controllers.yaml"/>
+  <!-- Load hardware controller mapping (remapped to xarm/xarm6_traj_controller in realMove_exec.launch) -->
+  <rosparam file="$(find scout_xarm_grip_moveit_config)/config/controllers.yaml"/>
 </launch>
+
+
+
+<!-- <launch> -->
+  <!-- Define the controller manager plugin to use for trajectory execution -->
+  <!-- <param name="moveit_controller_manager" value="moveit_simple_controller_manager/MoveItSimpleControllerManager" /> -->
+
+  <!-- loads controller list to the param server -->
+  <!-- <rosparam file="$(find scout_xarm_grip_moveit_config)/config/ros_controllers.yaml"/>
+  <rosparam file="$(find scout_xarm_grip_moveit_config)/config/gripper_controllers.yaml"/>
+</launch> -->
+    

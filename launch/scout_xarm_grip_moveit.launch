@@ -78,10 +78,10 @@
 	</include>
   </group>
  <!-- ========== PERCEPTION SENSORS (CAMERA + IMU + LIDAR) ========== -->
-  <group if="$(arg use_real_hardware)">
+
     <!-- Static TF between base_link and camera_link -->
     <node pkg="tf" type="static_transform_publisher" name="base_to_camera_tf"
-          args="0.06 0 0 0 0 0 link6 camera_link 100" />
+          args="0.055 0 0 0 0 0 link6 camera_link 100" />
 
     <node pkg="tf" type="static_transform_publisher" name="camera_link_to_camera_depth"
           args="0 0 0 3.14 -1.571 0 camera_link camera_depth_frame 100" />
@@ -95,7 +95,7 @@
       <arg name="enable_depth" value="true" />
       <arg name="align_depth" value="true" />
     </include>
-  </group>
+
   <!-- ========== SIMULATION (NO GAZEBO) ========== -->
   <group unless="$(arg gazebo)">
     <group unless="$(arg use_real_hardware)">

@@ -7,7 +7,8 @@ import threading
 from geometry_msgs.msg import PoseStamped, Point
 from std_msgs.msg import Bool
 from visualization_msgs.msg import Marker, MarkerArray
-from tf.transformations import quaternion_from_euler
+from tf.transformations import quaternion_from_euler, quaternion_matrix
+
 
 class MoveNode(object):
     def __init__(self):
@@ -20,7 +21,7 @@ class MoveNode(object):
         self.arm_group = moveit_commander.MoveGroupCommander("xarm6")
 
         # Publishers + Subscribers
-        self.goal_pub = rospy.Publisher("/goal_pose", PoseStamped, queue_size=10)
+        self.goal_pub = rospy.Publisher("/goal_pose", PoseStamped, queue_size=1)
          
         rospy.Subscriber("/grasp_estimation_node/grasp_pose",
                          PoseStamped, self.plan_to_pose, queue_size=1)
@@ -32,18 +33,18 @@ class MoveNode(object):
         print("End effector link:", self.arm_group.get_end_effector_link())
         self.arm_group.set_pose_reference_frame(self.arm_group.get_planning_frame())
         self.arm_group.set_planner_id("RRTConnectkConfigDefault")
-        self.arm_group.set_planning_time(5.0)
-        self.arm_group.set_num_planning_attempts(5)
+        self.arm_group.set_planning_time(5)
+        self.arm_group.set_num_planning_attempts(50)
         self.arm_group.allow_replanning(True)
         self.arm_group.set_goal_position_tolerance(0.01)
         self.arm_group.set_goal_orientation_tolerance(0.05)
-        self.arm_group.set_max_velocity_scaling_factor(0.3)
-        self.arm_group.set_max_acceleration_scaling_factor(0.3)
+        self.arm_group.set_max_velocity_scaling_factor(0.05)
+        self.arm_group.set_max_acceleration_scaling_factor(0.05)
 
         # Threading 
         self._lock = threading.Lock()
         self._latest_plan = None
-
+        self.latest_pose = None
         rospy.loginfo("Move node ready, waiting for grasp poses and execution trigger.")
 
     # --------------------------- CALLBACKS ---------------------------
@@ -61,7 +62,7 @@ class MoveNode(object):
             target_pose = msg.pose
             pose_stamped.pose = target_pose
             self.goal_pub.publish(pose_stamped)
-
+            self.latest_pose = pose_stamped
             rospy.loginfo(
                 "Planning to x=%.3f y=%.3f z=%.3f",
                 target_pose.position.x,
@@ -95,9 +96,26 @@ class MoveNode(object):
             rospy.loginfo("Execution complete.")
             self._latest_plan = None
         finally:
-            self.arm_group.stop()
-            self.arm_group.clear_pose_targets()
+            # self.arm_group.stop()
+            # self.arm_group.clear_pose_targets()
+            self.move_offset()
             self._lock.release()
+
+    def move_offset(self):
+        offset = 0.19
+        mat = quaternion_matrix([self.latest_pose.pose.orientation.x,
+                                 self.latest_pose.pose.orientation.y,
+                                 self.latest_pose.pose.orientation.z,
+                                 self.latest_pose.pose.orientation.w]
+                                 )
+        self.latest_pose.pose.position.x += mat[0, 0] * offset
+        self.latest_pose.pose.position.y += mat[1, 0] * offset
+        self.latest_pose.pose.position.z += mat[2, 0] * offset
+
+        self._plan_with_rrtconnect(self.latest_pose) 
+        
+        self.arm_group.stop()
+        self.arm_group.clear_pose_targets()
 
     # --------------------------- PLANNERS ---------------------------
     def _plan_with_rrtconnect(self, target_pose):

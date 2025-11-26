@@ -4,15 +4,13 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /MotionPlanning1
-        - /MotionPlanning1/Planned Path1
-        - /Marker1
+        - /MotionPlanning1/Planning Request1
         - /TF1
         - /TF1/Frames1
-        - /Image1
-        - /Pose2
+        - /Pose1
+        - /DepthCloud1/Auto Size1
       Splitter Ratio: 0.7425600290298462
-    Tree Height: 177
+    Tree Height: 140
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -45,7 +43,7 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Acceleration_Scaling_Factor: 1
+    - Acceleration_Scaling_Factor: 0.05
       Class: moveit_rviz_plugin/MotionPlanning
       Enabled: true
       Move Group Namespace: ""
@@ -184,6 +182,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          moveit_eef:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           rear_left_wheel_link:
             Alpha: 1
             Show Axes: false
@@ -214,7 +216,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-        Loop Animation: false
+        Loop Animation: true
         Robot Alpha: 0.5
         Robot Color: 150; 50; 150
         Show Robot Collision: false
@@ -365,6 +367,10 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          moveit_eef:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           rear_left_wheel_link:
             Alpha: 1
             Show Axes: false
@@ -399,7 +405,7 @@ Visualization Manager:
         Show Robot Collision: false
         Show Robot Visual: true
       Value: true
-      Velocity_Scaling_Factor: 1
+      Velocity_Scaling_Factor: 0.05
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /cam1/ar_pose_markervisualization_marker
@@ -416,31 +422,29 @@ Visualization Manager:
       Frames:
         All Enabled: false
         arm_base:
-          Value: true
+          Value: false
         base_link:
-          Value: true
+          Value: false
         box_link:
           Value: false
         camera_aligned_depth_to_color_frame:
-          Value: true
+          Value: false
         camera_color_frame:
-          Value: true
+          Value: false
         camera_color_optical_frame:
-          Value: true
+          Value: false
         camera_depth_frame:
-          Value: true
+          Value: false
         camera_depth_optical_frame:
-          Value: true
+          Value: false
         camera_link:
-          Value: true
+          Value: false
         dh_robotics_ag95_base_link:
           Value: false
         display_Link:
           Value: false
         dummy_base_link:
           Value: false
-        imu_link:
-          Value: true
         inertial_link:
           Value: false
         laser_Link:
@@ -466,10 +470,10 @@ Visualization Manager:
         link6:
           Value: false
         link_base:
-          Value: true
+          Value: false
         link_eef:
           Value: false
-        odom:
+        moveit_eef:
           Value: true
         right_crank:
           Value: false
@@ -479,15 +483,13 @@ Visualization Manager:
           Value: false
         right_rod:
           Value: false
-        rslidar:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        odom:
+        dummy_base_link:
           base_link:
             arm_base:
               link_base:
@@ -520,19 +522,15 @@ Visualization Manager:
                               right_proximal_phalanx:
                                 {}
                             link_eef:
-                              {}
+                              moveit_eef:
+                                {}
             box_link:
               display_Link:
                 {}
               laser_Link:
                 {}
-            imu_link:
-              {}
             inertial_link:
               {}
-            rslidar:
-              dummy_base_link:
-                {}
       Update Interval: 0
       Value: true
     - Class: rviz/Image
@@ -548,33 +546,69 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
+      Axes Length: 0.20000000298023224
+      Axes Radius: 0.009999999776482582
       Class: rviz/Pose
       Color: 255; 25; 0
       Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
+      Head Length: 0.10000000149011612
+      Head Radius: 0.029999999329447746
       Name: Pose
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic: /ball_positions
+      Shaft Length: 0.10000000149011612
+      Shaft Radius: 0.019999999552965164
+      Shape: Axes
+      Topic: /grasp_estimation_node/grasp_pose
       Unreliable: false
+      Value: true
+    - Alpha: 1
+      Auto Size:
+        Auto Size Factor: 1
+        Value: true
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/DepthCloud
+      Color: 255; 255; 255
+      Color Image Topic: ""
+      Color Transformer: RGB8
+      Color Transport Hint: raw
+      Decay Time: 0
+      Depth Map Topic: /camera/aligned_depth_to_color/image_raw
+      Depth Map Transport Hint: raw
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: DepthCloud
+      Occlusion Compensation:
+        Occlusion Time-Out: 30
+        Value: false
+      Position Transformer: XYZ
+      Queue Size: 5
+      Selectable: true
+      Size (Pixels): 3
+      Style: Flat Squares
+      Topic Filter: true
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.10000000149011612
       Class: rviz/Pose
-      Color: 255; 25; 0
+      Color: 0; 255; 0
       Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
+      Head Length: 0.10000000149011612
+      Head Radius: 0.05000000074505806
       Name: Pose
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
+      Shaft Length: 0.05000000074505806
+      Shaft Radius: 0.019999999552965164
       Shape: Arrow
-      Topic: /grasp_pose_base
+      Topic: /goal_pose
       Unreliable: false
       Value: true
   Enabled: true
@@ -593,25 +627,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 3.262820243835449
+      Distance: 1.813159465789795
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 1.017627477645874
+        Y: 0.06308984756469727
+        Z: 2.384185791015625e-7
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.37039846181869507
+      Pitch: 0.12479642778635025
       Target Frame: base_link
       Value: XYOrbit (rviz)
-      Yaw: 4.64858341217041
+      Yaw: 4.3118743896484375
     Saved: ~
 Window Geometry:
   Displays:
@@ -627,9 +661,9 @@ Window Geometry:
     collapsed: false
   MotionPlanning - Trajectory Slider:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000200000000000001f3000003a2fc0200000008fb000000100044006900730070006c006100790073010000003b000000ec000000c700fffffffb0000000a0049006d006100670065010000012d000000df0000001600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000c00430061006d006500720061010000010e000000820000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000212000001cb0000016900fffffffb0000000c00430061006d0065007200610100000333000000b000000000000000000000000100000132000003a5fc0200000001fb0000000a00560069006500770073000000003e000003a5000000a000ffffff0000053f000003a200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000200000000000001f3000003a2fc0200000008fb000000100044006900730070006c006100790073010000003b000000c7000000c700fffffffb0000000a0049006d00610067006501000001080000015b0000001600fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000c00430061006d006500720061010000010e000000820000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e00670100000269000001740000016900fffffffb0000000c00430061006d0065007200610100000333000000b000000000000000000000000100000132000003a5fc0200000001fb0000000a00560069006500770073000000003e000003a5000000a000ffffff00000541000003a200000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: true
-  Width: 1848
-  X: 72
+  Width: 1850
+  X: 70
   Y: 27
