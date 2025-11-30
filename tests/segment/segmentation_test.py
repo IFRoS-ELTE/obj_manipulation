@@ -84,13 +84,13 @@ def main():
         label_imgs[i] = data["label"]
     
     # Warm-up GPU
-    ins_seg.segement(xyz_imgs[0], rgb_imgs[0])
+    ins_seg.segment(xyz_imgs[0], rgb_imgs[0])
 
     # Run instance segmentation module on examples
     st_time = time.time()
     cluster_img_list = []
     for rgb_img, xyz_img in zip(rgb_imgs, xyz_imgs):
-        cluster_img, _ = ins_seg.segement(xyz_img, rgb_img)
+        cluster_img, _ = ins_seg.segment(xyz_img, rgb_img)
         cluster_img_list.append(cluster_img)
     total_time = time.time() - st_time
     print(f'Total time taken for Segmentation: {total_time:.3f} seconds')

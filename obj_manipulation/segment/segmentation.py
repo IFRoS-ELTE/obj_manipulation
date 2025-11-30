@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 # Code adapted from https://github.com/chrisdxie/uois
 class InstanceSegmentationBase(ABC):
-    """Base abstract class for instance segementation modules."""
+    """Base abstract class for instance segmentation modules."""
     OBJECTS_LABEL = 2  # Background (0), Table (1)
 
     def __init__(self, config: Dict[str, Any]):
@@ -33,7 +33,7 @@ class InstanceSegmentationBase(ABC):
         self.config = config.copy()
     
     @abstractmethod
-    def segement(self, **kwargs) -> Tuple[IntTensor, Optional[FloatTensor]]:
+    def segment(self, **kwargs) -> Tuple[IntTensor, Optional[FloatTensor]]:
         """Apply instance segmentation on input data."""
         pass
 
@@ -55,7 +55,7 @@ class InstanceSegmentationBase(ABC):
 
 
 class InstanceSegmentationDSN(InstanceSegmentationBase):
-    """Instance segementation module using DSN and Gaussian mean-shift only."""
+    """Instance segmentation module using DSN and Gaussian mean-shift only."""
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
@@ -67,7 +67,7 @@ class InstanceSegmentationDSN(InstanceSegmentationBase):
         self.min_pixels_thresh = self.config["min_pixels_thresh"]
     
     @torch.no_grad
-    def segement(self, xyz_img: FloatTensor) -> Tuple[IntTensor, Optional[FloatTensor]]:
+    def segment(self, xyz_img: FloatTensor) -> Tuple[IntTensor, Optional[FloatTensor]]:
         """Apply instance segmentation using DSN and GMS algorithm on input data.
         
         Args:
@@ -153,7 +153,7 @@ class InstanceSegmentationDSN(InstanceSegmentationBase):
     
 
 class InstanceSegmentationRRN(InstanceSegmentationBase):
-    """Instance segementation module using the RRN."""
+    """Instance segmentation module using the RRN."""
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
@@ -166,7 +166,7 @@ class InstanceSegmentationRRN(InstanceSegmentationBase):
         self.foreground_thresh = config.get("foreground_thresh", 0.5)
     
     @torch.no_grad
-    def segement(
+    def segment(
         self,
         rgb_img: FloatTensor,
         init_mask: FloatTensor,
@@ -322,7 +322,7 @@ class InstanceSegmentationFull(InstanceSegmentationBase):
         self.min_pixels_thresh = config.get("min_pixels_thresh", 500)
 
     @torch.no_grad
-    def segement(
+    def segment(
         self,
         xyz_img: FloatTensor,
         rgb_img: Optional[FloatTensor] = None,
@@ -339,7 +339,7 @@ class InstanceSegmentationFull(InstanceSegmentationBase):
             - cluster_centers: [N x 3] tensor containing the center locations of each cluster.
         """
         # Apply DSN module-based segmentation
-        cluster_img, _ = self.dsn_mod.segement(xyz_img)
+        cluster_img, _ = self.dsn_mod.segment(xyz_img)
 
         # Process object masks with open/close morphology
         if self.use_open_close_morphology:
@@ -351,7 +351,7 @@ class InstanceSegmentationFull(InstanceSegmentationBase):
         
         # Process object masks with RRN
         if self.use_rrn and rgb_img is not None:
-            cluster_img, _ = self.rrn_mod.segement(rgb_img, cluster_img)
+            cluster_img, _ = self.rrn_mod.segment(rgb_img, cluster_img)
         
         # Filter small clusters
         if self.filter_small_clusters:

@@ -134,7 +134,7 @@ class PointCloudFilterUOIS(PointCloudFilter):
         rgb_img_t = standardize_image_rgb(rgb_img, device=device) if rgb_img is not None else None
 
         # Get segmentation mask and object cluster center locations
-        seg_mask, obj_centers = self.ins_seg.segement(xyz_img_t, rgb_img_t)
+        seg_mask, obj_centers = self.ins_seg.segment(xyz_img_t, rgb_img_t)
 
         # Find best object whose bounding-box fits inside the given PC size
         obj_mask, obj_bbox = self._get_best_valid_object(seg_mask, obj_centers, n_points)
@@ -241,7 +241,7 @@ class PointCloudFilterSAM(PointCloudFilter):
         xyz_img_t = VF.to_tensor(xyz_img).to(device)
 
         # Get segmentation mask and object cluster center locations
-        masks, centers = self.ins_seg.segement(xyz_img, rgb_img)
+        masks, centers = self.ins_seg.segment(xyz_img, rgb_img)
         masks = torch.from_numpy(masks).to(device)
         centers = torch.from_numpy(centers).to(device)
 

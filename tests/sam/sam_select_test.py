@@ -59,7 +59,7 @@ def main(file: str):
         xyz_img = depth_map_to_xyz(depth, intrinsics)
 
     # Run SAM module on example
-    masks, _ = ins_seg.segement(xyz_img, rgb_img)
+    masks, _ = ins_seg.segment(xyz_img, rgb_img)
     assert masks.shape == (1, *rgb_img.shape[:2])
     
     # Plot input image and segmentation mask

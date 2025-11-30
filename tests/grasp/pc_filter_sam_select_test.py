@@ -64,7 +64,7 @@ def main(file: str):
     xyz_img = cv2.resize(xyz_img, (640, 480))
 
     # Test instance segmentation module separatley
-    masks, centers = pc_filter.ins_seg.segement(xyz_img, rgb_img)
+    masks, centers = pc_filter.ins_seg.segment(xyz_img, rgb_img)
     # Plot input image and segmentation mask
     plt.figure(figsize=(10, 8))
     plt.imshow(rgb_img)

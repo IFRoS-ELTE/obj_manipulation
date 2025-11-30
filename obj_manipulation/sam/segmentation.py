@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class InstanceSegmentationSAM:
-    """Instance segementation module using the Segment-Anything Model (SAM)."""
+    """Instance segmentation module using the Segment-Anything Model (SAM)."""
     CHECKPOINTS = {
         "vit_h": "sam_vit_h_4b8939.pth",
         "vit_l": "sam_vit_l_0b3195.pth",
@@ -41,7 +41,7 @@ class InstanceSegmentationSAM:
                 f"Unrecognized mode: {config['segment_mode']}. Expected one of 'select' or 'auto'"
             )
     
-    def segement(
+    def segment(
         self,
         xyz_img: NDArray[np.float32],
         rgb_img: NDArray[np.uint8],

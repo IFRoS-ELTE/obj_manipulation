@@ -49,7 +49,7 @@ def main(file: str):
         xyz_img = depth_map_to_xyz(depth, intrinsics)
 
     # Run SAM module on example
-    masks, _ = ins_seg.segement(xyz_img, rgb_img)
+    masks, _ = ins_seg.segment(xyz_img, rgb_img)
     if len(masks) == 0:
         print("SAM failed to find any objects in the scene.")
     else:

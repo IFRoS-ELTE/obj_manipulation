@@ -59,7 +59,7 @@ def main(file: str):
     rgb_img_t = standardize_image_rgb(rgb_img, device=device)
     rgb_img_np = unstandardize_image_rgb(rgb_img_t)
     xyz_img_np = unstandardize_image_xyz(xyz_img_t)
-    segmap, obj_centers = pc_filter.ins_seg.segement(xyz_img_t, rgb_img_t)
+    segmap, obj_centers = pc_filter.ins_seg.segment(xyz_img_t, rgb_img_t)
     visualize_rgb_segmap(rgb_img_np, segmap.cpu().numpy())
 
     # Test object selection and bounding box extraction functionalities

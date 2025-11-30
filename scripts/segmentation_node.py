@@ -105,7 +105,7 @@ class InstanceSegmentationNode:
 
         # Predict segmentation mask
         for _ in range(self.max_trials):
-            seg_mask, _ = self.ins_seg.segement(xyz, rgb_img=rgb)
+            seg_mask, _ = self.ins_seg.segment(xyz, rgb_img=rgb)
             max_label = seg_mask.amax()
             if max_label > 1:
                 break
