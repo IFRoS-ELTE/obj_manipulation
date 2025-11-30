@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import torch
 
-from obj_manipulation.grasp import PointCloudFilter
+from obj_manipulation.grasp import PointCloudFilterUOIS
 from obj_manipulation.grasp.utils import depth_map_to_xyz
 from obj_manipulation.grasp.utils.utils_visualization import visualize_grasps
 from obj_manipulation.segment.utils import (
@@ -30,8 +30,8 @@ def main(file: str):
     # Seed PyTorch and NumPy to ensure that repeatable results
     seed_everything(seed=0)
     
-    # Initialize point cloud filter
-    pc_filter = PointCloudFilter()
+    # Initialize point cloud filter using the UOIS segmentation module
+    pc_filter = PointCloudFilterUOIS()
 
     # Load test example
     path = Path(__file__).parent / f"examples/{file}"
@@ -74,7 +74,7 @@ def main(file: str):
     )
 
     # Test full point cloud filtering functionality
-    xyz_pc, _ = pc_filter.filter_point_cloud(xyz_img, rgb_img, n_points=20_000)
+    xyz_pc, _, _ = pc_filter.filter_point_cloud(xyz_img, rgb_img, n_points=20_000)
     xyz_pc = xyz_pc.cpu().numpy()
     xyz_pc_idx = np.zeros(xyz_pc.shape[0], dtype=np.int_)
     for i, xyz in enumerate(xyz_pc):
