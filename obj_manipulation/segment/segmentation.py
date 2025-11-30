@@ -66,7 +66,7 @@ class InstanceSegmentationDSN(InstanceSegmentationBase):
         # Store commonly used config entries to reduce dict look-ups
         self.min_pixels_thresh = self.config["min_pixels_thresh"]
     
-    @torch.no_grad
+    @torch.no_grad()
     def segment(self, xyz_img: FloatTensor) -> Tuple[IntTensor, Optional[FloatTensor]]:
         """Apply instance segmentation using DSN and GMS algorithm on input data.
         
@@ -165,7 +165,7 @@ class InstanceSegmentationRRN(InstanceSegmentationBase):
         self.crop_pad_perc = config.get("crop_pad_perc", 0.25)
         self.foreground_thresh = config.get("foreground_thresh", 0.5)
     
-    @torch.no_grad
+    @torch.no_grad()
     def segment(
         self,
         rgb_img: FloatTensor,
@@ -321,7 +321,7 @@ class InstanceSegmentationFull(InstanceSegmentationBase):
         self.filter_small_clusters = config.get("filter_small_clusters", False)
         self.min_pixels_thresh = config.get("min_pixels_thresh", 500)
 
-    @torch.no_grad
+    @torch.no_grad()
     def segment(
         self,
         xyz_img: FloatTensor,
