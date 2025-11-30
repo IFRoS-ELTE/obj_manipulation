@@ -33,7 +33,7 @@ class InstanceSegmentationBase(ABC):
         self.config = config.copy()
     
     @abstractmethod
-    def segement(self, **args) -> Tuple[IntTensor, Optional[FloatTensor]]:
+    def segement(self, **kwargs) -> Tuple[IntTensor, Optional[FloatTensor]]:
         """Apply instance segmentation on input data."""
         pass
 

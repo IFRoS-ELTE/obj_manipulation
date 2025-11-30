@@ -1,0 +1,14 @@
+
+# SAM module configuration parameters
+model_type = "vit_b"        # SAM model used. One of "vit_h", "vit_l" and "vit_b"
+segment_mode = "select"     # Segmentation mode between "select" and "auto"
+
+
+# Automatic segmentation parameters
+[auto]
+points_per_side = 16            # Number of points per side for mask prediction
+points_per_batch = 64           # Number of points processed in parallel
+pred_iou_thresh = 0.90          # Filtering threshold using the model's predicted mask quality 
+stability_score_thresh = 0.97   # Filering threshold using the stability of the mask under changes to the cutoff
+stability_score_offset = 1.0    # Amount to shift the cutoff when calculated the stability score
+box_nms_thresh = 0.4            # IoU cutoff used by NMS to filter duplicate masks

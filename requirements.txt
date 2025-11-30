@@ -6,3 +6,4 @@ matplotlib
 opencv-python
 toml
 open3d
+segment_anything @ git+https://github.com/facebookresearch/segment-anything.git@main
