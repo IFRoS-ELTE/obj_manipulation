@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import torch
 
-from obj_manipulation.grasp import GraspEstimatorCGN
+from obj_manipulation.grasp import GraspEstimatorCGN, PointCloudFilterSAM
 from obj_manipulation.grasp.utils import (
     depth_map_to_xyz,
     load_config,
@@ -27,7 +27,10 @@ def main(file: str, vis_width: bool):
     # Seed PyTorch and NumPy to ensure that repeatable results
     seed_everything(seed=0)
     
-    # Load configuration
+    # Initialize point cloud filter using the SAM segmentation module
+    pc_filter = PointCloudFilterSAM()
+
+    # Load grasp estimator configuration
     config_path = Path(__file__).parents[2] / "obj_manipulation/grasp/config/config.toml"
     assert config_path.exists()
     config = load_config(config_path)
@@ -57,13 +60,20 @@ def main(file: str, vis_width: bool):
         depth, intrinsics = np.array(data["depth"]), np.array(data["K"])
         xyz_img = depth_map_to_xyz(depth, intrinsics)
     
+    # Resize to same input resolution as provided by RGB-D camera
+    rgb_img = cv2.resize(rgb_img, (640, 480))
+    xyz_img = cv2.resize(xyz_img, (640, 480), interpolation=cv2.INTER_NEAREST)
+
     # Predict grasps for a single object
     start = time.time()
-    pred = grasp_est.predict_grasps(xyz_img.copy(), rgb_img.copy())
+    xyz_pc, xyz_object_pc, _ = pc_filter.filter_point_cloud(xyz_img, rgb_img, n_points=20_000)
+    pred = grasp_est.predict_grasps(xyz_pc, xyz_object_pc)
     delta = time.time() - start
     print(f"Grasp prediciton took {delta:.2f} seconds")
     if pred is not None:
-        depth_mask = np.logical_and(depth > grasp_est.min_depth, depth < grasp_est.max_depth)
+        depth_mask = np.logical_and(
+            xyz_img[..., -1] > grasp_est.min_depth, xyz_img[..., -1] < grasp_est.max_depth
+        )
         pred_widths = pred["pred_widths"] if vis_width \
             else np.full_like(pred["pred_widths"], grasp_est.gripper_width)
         visualize_grasps(

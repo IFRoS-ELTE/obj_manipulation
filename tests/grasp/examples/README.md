@@ -13,7 +13,8 @@ Additionally, since grasp estimation relies on instance segmentation, you must f
 To do this, follow the instructions given in the following [`README.md`](../../segment/examples/README.md) file.
 
 
-Then, you can run the following grasp estimation test script to ensure that the model works as expected.
+Then, you can run the following grasp estimation test scripts to ensure that the model works as expected.
+The first script uses the point cloud filter based on the the `UOIS` instance segmentation module, while the second relies on the `SAM` module for instance segmentation.
 
 ```bash
 # Setup ROS package environment variables
@@ -21,14 +22,15 @@ cd /catkin_ws
 catkin_make
 source devel/setup.bash
 
-# Run test script
+# Run test scripts
 cd /catkin_ws/src/obj_manipulation
-python3 tests/grasp/grasp_test.py -f 0.npy
+python3 tests/grasp/grasp_uois_test.py -f 0.npy
+python3 tests/grasp/grasp_sam_test.py -f 0.npy
 ```
 
 # Expected Results
 
-The following figure showcases the expected grasp estimation results from the `grasp_test.py` test script.
+The following figure showcases the expected grasp estimation results from the `grasp_uois_test.py` test script.
 The colors of the shown grasps represent their predicted success probabilities.
 All grasps are shown with a fixed grasp width set to the gripper's width.
 <p align="center">

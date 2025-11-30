@@ -49,7 +49,7 @@ def main(file: str):
 
     # Resize to same input resolution as provided by RGB-D camera
     rgb_img = cv2.resize(rgb_img, (640, 480))
-    xyz_img = cv2.resize(xyz_img, (640, 480))    
+    xyz_img = cv2.resize(xyz_img, (640, 480), interpolation=cv2.INTER_NEAREST)    
 
     # Test instance segmentation module separatley
     masks, centers = pc_filter.ins_seg.segment(xyz_img, rgb_img)
