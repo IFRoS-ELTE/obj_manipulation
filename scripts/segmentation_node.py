@@ -21,6 +21,7 @@ from obj_manipulation.grasp.utils import (
     load_config,
 )
 from obj_manipulation.segment import InstanceSegmentationFull
+from obj_manipulation.sam import InstanceSegmentationSAM
 
 
 class InstanceSegmentationNode:
@@ -32,27 +33,34 @@ class InstanceSegmentationNode:
         self.xyz_image = None
         self.camera_intrinsics = None
 
-        # -------- Load configuration and model --------
-        config_path = Path(__file__).parents[1] / "obj_manipulation/segment/config/config.toml"
-        assert config_path.exists()
-        config = load_config(config_path)
-
-        self.ins_seg = InstanceSegmentationFull(config)
-        self.ins_seg.load()
-        self.ins_seg.eval_mode()
-
         # -------- Load node parameters --------
         self.alpha = rospy.get_param("/instance_segmentation/alpha", 0.6)
         self.max_trials = rospy.get_param("/instance_segmentation/max_trials", 4)
+        seg_model = rospy.get_param("/instance_segmentation/seg_model", "sam")
+        assert seg_model in ["sam", "uois"]
+
+        # -------- Load configuration and model --------
+        if seg_model == "sam":
+            config_path = Path(__file__).parents[1] / "obj_manipulation/sam/config/config.toml"
+            assert config_path.exists()
+            config = load_config(config_path)
+            self.ins_seg = InstanceSegmentationSAM(config)
+            self.get_seg_mask = self._get_seg_mask_sam
+        else:  # uois
+            config_path = Path(__file__).parents[1] / "obj_manipulation/segment/config/config.toml"
+            assert config_path.exists()
+            config = load_config(config_path)
+            self.ins_seg = InstanceSegmentationFull(config)
+            self.ins_seg.load()
+            self.ins_seg.eval_mode()
+            self.get_seg_mask = self._get_seg_mask_uois
 
         # -------- Subscribers --------
         rgb_topic_name = "/camera/color/image_raw"
         depth_topic_name = "/camera/aligned_depth_to_color/image_raw"
         cam_info_topic_name = "/camera/aligned_depth_to_color/camera_info"
 
-        self.rgb_sub = rospy.Subscriber(
-            rgb_topic_name, Image, self.rgb_callback, queue_size=1
-        )
+        self.rgb_sub = rospy.Subscriber(rgb_topic_name, Image, self.rgb_callback, queue_size=1)
         self.depth_sub = rospy.Subscriber(
             depth_topic_name, Image, self.depth_callback, queue_size=1
         )
@@ -83,6 +91,14 @@ class InstanceSegmentationNode:
             color_mask[seg_mask == (i + 2), :] = np.array(colors[i][:3]) * 255
         return color_mask
 
+    @staticmethod
+    def _masks_to_seg_mask(masks: NDArray[np.bool_]) -> NDArray[np.in32]:
+        assert masks.ndim == 3 and len(masks) > 0
+        seg_mask = np.zeros(masks.shape[1:], dtype=np.int32)
+        for i, mask in enumerate(masks):
+            seg_mask[mask] = i + 2  # (+ 2) to match UOIS object labels
+        return seg_mask
+
     def cam_info_callback(self, msg: CameraInfo) -> None:
         K = np.array(msg.K).reshape(3, 3)
         self.camera_intrinsics = K
@@ -96,22 +112,6 @@ class InstanceSegmentationNode:
             if msg.encoding == "16UC1":
                 depth_image = depth_image.astype(np.float32) / 1000.0
             self.xyz_image = depth_map_to_xyz(depth_image, self.camera_intrinsics)
-
-    def get_seg_mask(self) -> Optional[NDArray[np.int32]]:
-        device = self.ins_seg.device
-        # Transform inputs
-        rgb = standardize_image_rgb(self.rgb_image, device=device)
-        xyz = standardize_image_xyz(self.xyz_image, device=device)
-
-        # Predict segmentation mask
-        for _ in range(self.max_trials):
-            seg_mask, _ = self.ins_seg.segment(xyz, rgb_img=rgb)
-            max_label = seg_mask.amax()
-            if max_label > 1:
-                break
-        if max_label <= 1:
-            return None
-        return seg_mask.cpu().numpy()
 
     def publish_seg_mask(self, seg_mask: NDArray[np.int32]):
         # Get color mask and blend it with input RGB image
@@ -130,6 +130,28 @@ class InstanceSegmentationNode:
         
         # Publish message
         self.seg_mask_pub.publish(seg_image_msg)
+
+    def _get_seg_mask_uois(self) -> Optional[NDArray[np.int32]]:
+        device = self.ins_seg.device
+        # Transform inputs
+        rgb = standardize_image_rgb(self.rgb_image, device=device)
+        xyz = standardize_image_xyz(self.xyz_image, device=device)
+        # Predict segmentation mask
+        for _ in range(self.max_trials):
+            seg_mask, _ = self.ins_seg.segment(xyz, rgb_img=rgb)
+            max_label = seg_mask.amax()
+            if max_label > 1:
+                return seg_mask.cpu().numpy()
+        return None
+    
+    def _get_seg_mask_sam(self) -> Optional[NDArray[np.int32]]:
+        # Predict object masks
+        for _ in range(self.max_trials):
+            masks, _ = self.ins_seg.segment(self.xyz_image, self.rgb_image)
+            if len(masks) > 0:
+                seg_mask = self._masks_to_seg_mask(masks)
+                return seg_mask
+        return None
 
 
 def main():

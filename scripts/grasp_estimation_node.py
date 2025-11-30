@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-import os
 from typing import Dict
+from pathlib import Path
 
 import numpy as np
-import open3d as o3d
 from numpy.typing import NDArray
 from scipy.spatial.transform import Rotation as R
 
@@ -14,10 +13,13 @@ import tf2_geometry_msgs
 from cv_bridge import CvBridge
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import CameraInfo, Image
-from std_msgs.msg import Bool
-from visualization_msgs.msg import Marker
+from std_msgs.msg import Bool, Header
 
-from obj_manipulation.grasp import GraspEstimatorCGN
+from obj_manipulation.grasp import (
+    GraspEstimatorCGN,
+    PointCloudFilterSAM,
+    PointCloudFilterUOIS,
+)
 from obj_manipulation.grasp.utils import (
     depth_map_to_xyz,
     load_config,
@@ -35,60 +37,50 @@ class GraspEstimationNode:
         self.xyz_image = None
         self.camera_intrinsics = None
 
-        # -------- Logging Configuration --------
-        self.saved_grasps = []
-        self.saved_clouds = 0
-        self.max_saved = 10
-        self.log_dir = "/catkin_ws/src/obj_manipulation/data_logs"
-
-        os.makedirs(self.log_dir, exist_ok=True)
-        rospy.loginfo(f"Logging directory: {self.log_dir}")
-
-        # -------- Load configuration and model --------
-        config_path = "/catkin_ws/src/obj_manipulation/obj_manipulation/grasp/config/config.toml"
-        assert os.path.exists(config_path)
-        rospy.loginfo(f"Loading configuration from: {config_path}")
-        config = load_config(config_path)
-        self.gripper_depth = config["gripper_depth"]
-
-        rospy.loginfo("Initializing grasp estimator...")
-        self.grasp_est = GraspEstimatorCGN(config)
-        self.grasp_est.load()
-        self.grasp_est.eval_mode()
-        rospy.loginfo("Grasp estimator model loaded and ready.")
-
         # -------- Load node parameters --------
+        self.alpha = rospy.get_param("/grasp_estimation_node/alpha", 0.6)
         self.max_trials = rospy.get_param("/grasp_estimation_node/max_trials", 25)
         self.approach_distance = rospy.get_param("/grasp_estimation_node/approach_distance", 0.17)
         self.visualize_grasps = rospy.get_param("/grasp_estimation_node/visualize_grasps", False)
+        seg_model = rospy.get_param("/grasp_estimation_node/seg_model", "sam")
+        assert seg_model in ["sam", "uois"]
+
+        # -------- Load configuration and model --------
+        self.pc_filter = PointCloudFilterSAM() if seg_model == "sam" else PointCloudFilterUOIS()
+        config_path = Path(__file__).parents[1] / "obj_manipulation/grasp/config/config.toml"
+        assert config_path.exists()
+        config = load_config(config_path)
+        self.n_input_points = config["n_input_points"]
+        self.gripper_depth = config["gripper_depth"]
+
+        self.grasp_est = GraspEstimatorCGN(config)
+        self.grasp_est.load()
+        self.grasp_est.eval_mode()
 
         # -------- TF2 Setup ---------
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
         # -------- Subscribers --------
-        rospy.loginfo("Subscribing to camera topics...")
-        self.rgb_sub = rospy.Subscriber(
-            "/camera/color/image_raw", Image, self.rgb_callback
-        )
+        rgb_topic_name = "/camera/color/image_raw"
+        depth_topic_name = "/camera/aligned_depth_to_color/image_raw"
+        cam_info_topic_name = "/camera/aligned_depth_to_color/camera_info"
+
+        self.rgb_sub = rospy.Subscriber(rgb_topic_name, Image, self.rgb_callback, queue_size=1)
         self.depth_sub = rospy.Subscriber(
-            "/camera/aligned_depth_to_color/image_raw", Image, self.depth_callback
+            depth_topic_name, Image, self.depth_callback, queue_size=1
         )
         self.cam_info_sub = rospy.Subscriber(
-            "/camera/aligned_depth_to_color/camera_info", CameraInfo, self.cam_info_callback
+            cam_info_topic_name, CameraInfo, self.cam_info_callback, queue_size=1
         )
-
-        # Trigger subscriber
-        self.trigger_sub = rospy.Subscriber(
+        self.trigger_sub = rospy.Subscriber(  # Trigger subscriber
             "/grasp_estimation_node/trigger", Bool, self.trigger_callback
         )
         rospy.loginfo("Subscribed to /grasp_estimation_node/trigger for one-shot control.")
 
         # -------- Publishers --------
-        self.pose_pub = rospy.Publisher("/grasp_estimation_node/grasp_pose", PoseStamped, queue_size=10)
-        self.marker_pub = rospy.Publisher("/grasp_estimation_node/marker", Marker, queue_size=10)
-        rospy.loginfo("Publishers created for grasp pose and RViz marker.")
-
+        self.pose_pub = rospy.Publisher("/grasp_estimation_node/grasp_pose", PoseStamped, queue_size=1)
+        self.obj_mask_pub = rospy.Publisher("/grasp_estimation_node/obj_mask", Image, queue_size=1)
         rospy.loginfo("Initialization complete. Waiting for camera data...")
 
     @property
@@ -126,19 +118,17 @@ class GraspEstimationNode:
 
     # ------------------ Main Prediction ------------------
     def try_predict_grasp(self):
-        rospy.loginfo("Starting grasp prediction pipeline...")
-
-        # # Optional: save first 10 point clouds
-        # if self.saved_clouds < self.max_saved:
-        #     self.save_point_cloud(xyz_img)
-        #     self.saved_clouds += 1
-
         # Step 1: Run model
         rospy.loginfo("Running grasp estimation model...")
         for _ in range(self.max_trials):
-            result = self.grasp_est.predict_grasps(self.xyz_image, self.rgb_image)
-            if result is not None:
-                break
+            pc_filter_out = self.pc_filter.filter_point_cloud(
+                self.xyz_image, self.rgb_image, n_points=self.n_input_points
+            )
+            if pc_filter_out is not None:
+                xyz_pc, xyz_object_pc, obj_mask = pc_filter_out
+                result = self.grasp_est.predict_grasps(xyz_pc, xyz_object_pc)
+                if result is not None:
+                    break
         rospy.loginfo("Grasp estimation model finished inference.")
 
         # Step 2: Extract best grasp
@@ -147,19 +137,14 @@ class GraspEstimationNode:
             return
         best_pose = result["pred_grasps"][0]
 
-        # Step 3: Publish Pose + Marker
+        # Step 3: Publish Pose + Object Mask
         self.publish_grasp_pose(best_pose)
-        self.publish_marker(best_pose)
+        self.publish_obj_mask(obj_mask)
         rospy.loginfo("Grasp pose and marker published successfully.")
 
         # Step 4: Optionally visualize grasps in 3D
         if self.visualize_grasps:
             self.visualize_grasps_open3d(result)
-
-        # Step 5: Save first 10 best grasp poses
-        # if len(self.saved_grasps) < self.max_saved:
-        #     self.save_grasp_pose(best_pose)
-
         rospy.loginfo(f"Grasp estimation run complete at {rospy.get_time():.2f}. Waiting for next trigger.")
 
     # ------------------ Grasp Visualization ------------------
@@ -184,37 +169,8 @@ class GraspEstimationNode:
             self.gripper_depth
         )
 
-
-    # ------------------ Data Saving ------------------
-    def save_point_cloud(self, xyz_img):
-        """Save point cloud as .ply file."""
-        try:
-            points = xyz_img.reshape(-1, 3)
-            mask = np.isfinite(points).all(axis=1)
-            points = points[mask]
-
-            cloud = o3d.geometry.PointCloud()
-            cloud.points = o3d.utility.Vector3dVector(points)
-
-            path = os.path.join(self.log_dir, f"pointcloud_{self.saved_clouds + 1:02d}.ply")
-            o3d.io.write_point_cloud(path, cloud)
-            rospy.loginfo(f"Saved point cloud #{self.saved_clouds + 1} to: {path}")
-        except Exception as e:
-            rospy.logwarn(f"Error saving point cloud: {e}")
-
-    def save_grasp_pose(self, grasp_matrix):
-        """Save grasp pose as .npy file."""
-        try:
-            idx = len(self.saved_grasps) + 1
-            self.saved_grasps.append(grasp_matrix)
-            path = os.path.join(self.log_dir, f"grasp_pose_{idx:02d}.npy")
-            np.save(path, grasp_matrix)
-            rospy.loginfo(f"Saved grasp pose #{idx} to: {path}")
-        except Exception as e:
-            rospy.logwarn(f"Error saving grasp pose: {e}")
-
     # ------------------ Publishing ------------------
-    def publish_grasp_pose(self, grasp_matrix):
+    def publish_grasp_pose(self, grasp_matrix) -> None:
         """Publish the grasp as a PoseStamped message."""
         pose_msg = PoseStamped()
         pose_msg.header.stamp = rospy.Time.now()
@@ -254,37 +210,23 @@ class GraspEstimationNode:
         self.pose_pub.publish(pose_msg)
         rospy.loginfo("Published PoseStamped message on /grasp_estimation_node/grasp_pose.")
 
-    def publish_marker(self, grasp_matrix):
-        """Publish a 3D arrow marker in RViz at the grasp pose."""
-        marker = Marker()
-        marker.header.stamp = rospy.Time.now()
-        marker.header.frame_id = "camera_color_optical_frame"
-        marker.ns = "grasp_marker"
-        marker.id = 0
-        marker.type = Marker.ARROW
-        marker.action = Marker.ADD
+    def publish_obj_mask(self, obj_mask: NDArray[np.bool_]) -> None:
+        # Set color of pixels covered by object mask
+        COLOR_MASK = np.array([30, 144, 255], dtype=np.uint8)
+        seg_image = np.where(
+            obj_mask,
+            self.alpha * COLOR_MASK + (1 - self.alpha) * self.rgb_image,
+            self.rgb_image,
+        ).astype(np.uint8)
 
-        # Pose (same as grasp pose)
-        marker.pose.position.x = grasp_matrix[0, 3]
-        marker.pose.position.y = grasp_matrix[1, 3]
-        marker.pose.position.z = grasp_matrix[2, 3]
-
-        quat = R.from_matrix(grasp_matrix[:3, :3]).as_quat()
-        marker.pose.orientation.x = quat[0]
-        marker.pose.orientation.y = quat[1]
-        marker.pose.orientation.z = quat[2]
-        marker.pose.orientation.w = quat[3]
-
-        # Marker size and color
-        marker.scale.x = 0.15
-        marker.scale.y = 0.04
-        marker.scale.z = 0.04
-        marker.color.r = 0.0
-        marker.color.g = 1.0
-        marker.color.b = 0.0
-        marker.color.a = 1.0
-        marker.lifetime = rospy.Duration(1.0)
-        self.marker_pub.publish(marker)
+        # Convert from NumPy to ROS Image
+        header = Header()
+        header.stamp = rospy.Time.now()
+        header.frame_id = "camera_color_optical_frame"
+        seg_image_msg = self.bridge.cv2_to_imgmsg(seg_image, encoding="rgb8", header=header)
+        
+        # Publish message
+        self.obj_mask_pub.publish(seg_image_msg)
 
 
 if __name__ == '__main__':
