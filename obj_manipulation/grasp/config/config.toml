@@ -10,9 +10,9 @@ gripper_extra_opening = 0.005   # Extra margin added to predicted gripper's widt
 n_input_points = 20_000     # Size of point cloud used for grasp prediction.
 convert_cam_coords = true   # Convert from OpenCV to internal camera coordinates (x left, y up, z front).
 forward_passes = 1          # Number of simulateneous forward passes performed on same input point cloud.
-min_depth = 0.2             # Minimum allowed depth (Z) values in input point cloud.
+min_depth = 0.10            # Minimum allowed depth (Z) values in input point cloud.
 max_depth = 1.8             # Maximum allowed depth (Z) values in input point cloud.
-med_thresh = 5.0            # Maximum allowed absolute distance from point cloud median value. 
+med_thresh = 0.4            # Maximum allowed absolute distance from point cloud median value. 
 
 # Grasp prediction filtering parameters
 grasp_conf_thresh = 0.15        # Minimum threshold for grasp confidence (success) scores.

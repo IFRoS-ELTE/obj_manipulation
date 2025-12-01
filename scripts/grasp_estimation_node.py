@@ -36,6 +36,7 @@ class GraspEstimationNode:
         self.rgb_image = None
         self.xyz_image = None
         self.camera_intrinsics = None
+        self.trigger = False
 
         # -------- Load node parameters --------
         self.alpha = rospy.get_param("/grasp_estimation_node/alpha", 0.6)
@@ -88,16 +89,17 @@ class GraspEstimationNode:
         ready = all([
             self.rgb_image is not None,
             self.xyz_image is not None,
+            self.trigger,
         ])
         return ready
     
     # ------------------ Trigger Control ------------------
     def trigger_callback(self, msg: Bool) -> None:
         """Enable grasp estimation when a Bool trigger (data: true) is received."""
-        if msg.data and self.ready_to_publish:
+        if msg.data:
             rospy.loginfo("Received trigger signal — grasp estimation enabled for one run.")
-            self.try_predict_grasp()
-
+            self.trigger = True
+        
     # ------------------ Callbacks ------------------
     def cam_info_callback(self, msg: CameraInfo) -> None:
         K = np.array(msg.K).reshape(3, 3)
@@ -112,7 +114,7 @@ class GraspEstimationNode:
         if self.camera_intrinsics is not None:    
             self.depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
             if msg.encoding == "16UC1":
-                self.depth = self.depth.astype(np.float32) / 1000.0  # convert mm → meters 
+                self.depth = self.depth.astype(np.float32) / 1000.0  # convert mm → meters
             self.xyz_image = depth_map_to_xyz(self.depth, self.camera_intrinsics)
             rospy.loginfo_once("Received first xyz image.")
 
@@ -124,22 +126,21 @@ class GraspEstimationNode:
             pc_filter_out = self.pc_filter.filter_point_cloud(
                 self.xyz_image, self.rgb_image, n_points=self.n_input_points
             )
-            if pc_filter_out is not None:
-                xyz_pc, xyz_object_pc, obj_mask = pc_filter_out
-                result = self.grasp_est.predict_grasps(xyz_pc, xyz_object_pc)
-                if result is not None:
-                    break
+            xyz_pc, xyz_object_pc, obj_mask = pc_filter_out
+            result = self.grasp_est.predict_grasps(xyz_pc, xyz_object_pc)
+            if result is not None:
+                break
         rospy.loginfo("Grasp estimation model finished inference.")
 
         # Step 2: Extract best grasp
         if result is None or result["pred_grasps"].shape == ():
             rospy.logwarn("No valid grasps predicted.")
             return
-        best_pose = result["pred_grasps"][0]
+        best_pose = result["pred_grasps"][np.random.randint(0, len(result["pred_grasps"]))]
 
         # Step 3: Publish Pose + Object Mask
         self.publish_grasp_pose(best_pose)
-        self.publish_obj_mask(obj_mask)
+        self.publish_obj_mask(obj_mask.cpu().numpy())
         rospy.loginfo("Grasp pose and marker published successfully.")
 
         # Step 4: Optionally visualize grasps in 3D
@@ -176,8 +177,9 @@ class GraspEstimationNode:
         pose_msg.header.stamp = rospy.Time.now()
 
         # Translation
-        grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('x', np.pi/2).as_matrix()
-        grasp_matrix[:3, 3] -= grasp_matrix[:3, 0] * self.approach_distance
+        grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('y', [-np.pi/2]).as_matrix()
+        grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('x', [-np.pi/2]).as_matrix()
+        grasp_matrix[:3, 3] -= grasp_matrix[:3, 0] * 0.17
 
         pose_msg.pose.position.x = grasp_matrix[0, 3]
         pose_msg.pose.position.y = grasp_matrix[1, 3]
@@ -214,7 +216,7 @@ class GraspEstimationNode:
         # Set color of pixels covered by object mask
         COLOR_MASK = np.array([30, 144, 255], dtype=np.uint8)
         seg_image = np.where(
-            obj_mask,
+            obj_mask[..., None],
             self.alpha * COLOR_MASK + (1 - self.alpha) * self.rgb_image,
             self.rgb_image,
         ).astype(np.uint8)
@@ -229,9 +231,17 @@ class GraspEstimationNode:
         self.obj_mask_pub.publish(seg_image_msg)
 
 
+def main():
+    node = GraspEstimationNode()
+    rate = rospy.Rate(hz=1)  # Check for triggers at a fixed rate of 1 Hz
+    while not rospy.is_shutdown():
+        if node.ready_to_publish:
+            node.try_predict_grasp()
+            node.trigger = False
+        rate.sleep()
+
 if __name__ == '__main__':
     try:
-        node = GraspEstimationNode()
-        rospy.spin()
+        main()
     except rospy.ROSInterruptException:
         rospy.loginfo("Grasp Estimation Node terminated.")

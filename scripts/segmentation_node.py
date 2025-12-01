@@ -92,7 +92,7 @@ class InstanceSegmentationNode:
         return color_mask
 
     @staticmethod
-    def _masks_to_seg_mask(masks: NDArray[np.bool_]) -> NDArray[np.in32]:
+    def _masks_to_seg_mask(masks: NDArray[np.bool_]) -> NDArray[np.int32]:
         assert masks.ndim == 3 and len(masks) > 0
         seg_mask = np.zeros(masks.shape[1:], dtype=np.int32)
         for i, mask in enumerate(masks):
