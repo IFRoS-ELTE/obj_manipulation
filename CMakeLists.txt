@@ -49,9 +49,15 @@ set(NESTED_PACKAGES
   "scout_xarm/xarm_ros/xarm_description"
   "scout_xarm/scout_xarm_moveit_config"
   "scout_xarm/xarm_ros/xarm6_gripper_moveit_config"
-  # "scout_xarm/xarm_ros/xarm_gripper"
-  "scout_xarm_grip_moveit_config"
   # "scout_xarm/xarm_ros/xarm_api"
+  # "scout_xarm/xarm_ros/xarm_sdk"
+  "scout_xarm/xarm_ros/xarm_msgs"
+  "scout_xarm_grip_moveit_config"
+  "dh_gripper_driver"
+  "dh_gripper_msgs"
+  "scout_xarm/xarm_ros/xarm7_gripper_moveit_config"
+  "scout_xarm/xarm_ros/xarm7_moveit_config"
+  # "scout_xarm/xarm_ros/xarm_gripper"
 )
 
 foreach(pkg IN LISTS NESTED_PACKAGES)
