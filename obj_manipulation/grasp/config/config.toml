@@ -7,7 +7,7 @@ gripper_width = 0.095           # Distance between gripper fingers when fully op
 gripper_extra_opening = 0.005   # Extra margin added to predicted gripper's width values.
 
 # Input point cloud processing parameter 
-n_input_points = 20_000     # Size of point cloud used for grasp prediction.
+n_input_points = 30_000     # Size of point cloud used for grasp prediction.
 convert_cam_coords = true   # Convert from OpenCV to internal camera coordinates (x left, y up, z front).
 forward_passes = 1          # Number of simulateneous forward passes performed on same input point cloud.
 min_depth = 0.10            # Minimum allowed depth (Z) values in input point cloud.

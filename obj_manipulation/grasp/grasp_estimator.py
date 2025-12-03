@@ -120,7 +120,7 @@ class GraspEstimatorCGN(GraspEstimatorBase):
         pred = self._predict_grasps(xyz_pc)
 
         # Filter, downsample and sort grasp predictions according to their confidence scores
-        grasp_indices = self._select_grasps(pred["pred_points"], pred["pred_scores"])
+        grasp_indices = self._select_grasps(pred["pred_points"], pred["pred_scores"], pred["pred_widths"])
         if grasp_indices.shape[0] == 0:
             return None
 
@@ -245,7 +245,7 @@ class GraspEstimatorCGN(GraspEstimatorBase):
         return pred
 
     def _select_grasps(
-        self, pred_points: FloatTensor, pred_scores: FloatTensor
+        self, pred_points: FloatTensor, pred_scores: FloatTensor, pred_widths: FloatTensor,
     ) -> IntTensor:
         """Select subset of grasps according to confidence threshold and farthest contact point downsampling.
 
@@ -273,18 +273,26 @@ class GraspEstimatorCGN(GraspEstimatorBase):
             )
             return conf_indices
 
+        # Filter according to grasp width
+        mean_width = torch.mean(pred_widths[conf_indices, 0])
+        width_indices = torch.nonzero(
+            torch.abs(pred_widths[conf_indices, 0] - mean_width) < 0.02, as_tuple=True
+        )[0]
+        width_indices = conf_indices[width_indices]
+    
         # Downsample accepted grasps using farthest points sampling
+        n_grasps_total = width_indices.shape[0]
         n_grasps = int(self.grasp_downsample_factor * n_grasps_total)
         n_grasps = max(n_grasps, self.grasp_downsample_min)
         if n_grasps < n_grasps_total:
             center_indices = sample_farthest_points(
-                pred_points[conf_indices].unsqueeze(dim=0),
+                pred_points[width_indices].unsqueeze(dim=0),
                 n_points=n_grasps,
             ).squeeze(dim=0)
-            center_indices = conf_indices[center_indices]  # Indices in original tensor
+            center_indices = width_indices[center_indices]  # Indices in original tensor
         else:
-            center_indices = conf_indices
-
+            center_indices = width_indices
+        
         # Sort remaining grasps by their confidence scores
         grasp_indices = torch.argsort(pred_scores[center_indices, 0], descending=True)
         grasp_indices = center_indices[grasp_indices]

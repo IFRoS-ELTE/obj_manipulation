@@ -132,14 +132,16 @@ class GraspEstimationNode:
                 break
         rospy.loginfo("Grasp estimation model finished inference.")
 
-        # Step 2: Extract best grasp
+        # Step 2: Sample grasp according to probabilities
         if result is None or result["pred_grasps"].shape == ():
             rospy.logwarn("No valid grasps predicted.")
             return
-        best_pose = result["pred_grasps"][np.random.randint(0, len(result["pred_grasps"]))]
+        pose_probs = result["pred_scores"][:, 0] / np.sum(result["pred_scores"][:, 0])
+        pose_idx = np.random.choice(len(result["pred_grasps"]), p=pose_probs)
+        grasp_pose = result["pred_grasps"][pose_idx]
 
         # Step 3: Publish Pose + Object Mask
-        self.publish_grasp_pose(best_pose)
+        self.publish_grasp_pose(grasp_pose)
         self.publish_obj_mask(obj_mask.cpu().numpy())
         rospy.loginfo("Grasp pose and marker published successfully.")
 
@@ -178,8 +180,8 @@ class GraspEstimationNode:
 
         # Translation
         grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('y', [-np.pi/2]).as_matrix()
-        grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('x', [-np.pi/2]).as_matrix()
-        grasp_matrix[:3, 3] -= grasp_matrix[:3, 0] * 0.17
+        grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('x', [np.pi/2]).as_matrix()
+        grasp_matrix[:3, 3] -= grasp_matrix[:3, 0] * 0.06
 
         pose_msg.pose.position.x = grasp_matrix[0, 3]
         pose_msg.pose.position.y = grasp_matrix[1, 3]
