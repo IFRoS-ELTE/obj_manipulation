@@ -4,14 +4,16 @@ from typing import Dict
 from pathlib import Path
 
 import numpy as np
+import torch
 from numpy.typing import NDArray
+from torch import FloatTensor
 from scipy.spatial.transform import Rotation as R
 
 import rospy
 import tf2_ros
 import tf2_geometry_msgs
 from cv_bridge import CvBridge
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Transform
 from sensor_msgs.msg import CameraInfo, Image
 from std_msgs.msg import Bool, Header
 
@@ -93,6 +95,18 @@ class GraspEstimationNode:
         ])
         return ready
     
+    @staticmethod
+    def transform_xyz_pc(xyz_pc: FloatTensor, transform: Transform) -> FloatTensor:
+        """Apply the given transformation to the point cloud and return transformed point cloud."""
+        dtype, device = xyz_pc.dtype, xyz_pc.device
+        t, r = transform.translation, transform.rotation
+        translation = torch.tensor([t.x, t.y, t.z], dtype=dtype, device=device)
+        rotation = torch.from_numpy(
+            R.from_quat([r.x, r.y, r.z, r.w]).as_matrix()
+        ).to(dtype=dtype, device=device)
+        xyz_pc_tf = xyz_pc @ rotation.T + translation
+        return xyz_pc_tf
+    
     # ------------------ Trigger Control ------------------
     def trigger_callback(self, msg: Bool) -> None:
         """Enable grasp estimation when a Bool trigger (data: true) is received."""
@@ -123,10 +137,17 @@ class GraspEstimationNode:
         # Step 1: Run model
         rospy.loginfo("Running grasp estimation model...")
         for _ in range(self.max_trials):
-            pc_filter_out = self.pc_filter.filter_point_cloud(
+            xyz_pc, xyz_object_pc, obj_mask = self.pc_filter.filter_point_cloud(
                 self.xyz_image, self.rgb_image, n_points=self.n_input_points
             )
-            xyz_pc, xyz_object_pc, obj_mask = pc_filter_out
+            self.transform = self.tf_buffer.lookup_transform(
+                "camera_color_optical_frame_virtual",   # target frame
+                "camera_color_optical_frame",           # source frame
+                rospy.Time(0),                          # latest available transform
+                rospy.Duration(secs=2),                 # timeout duration
+            )
+            xyz_pc = self.transform_xyz_pc(xyz_pc, self.transform.transform)
+            xyz_object_pc = self.transform_xyz_pc(xyz_object_pc, self.transform.transform)
             result = self.grasp_est.predict_grasps(xyz_pc, xyz_object_pc)
             if result is not None:
                 break
@@ -160,6 +181,7 @@ class GraspEstimationNode:
         if not np.any(depth_mask):
             return
         xyz_pc = self.xyz_image[depth_mask]
+        xyz_pc = self.transform_xyz_pc(torch.from_numpy(xyz_pc), self.transform.transform).numpy()
         rgb_pc = self.rgb_image[depth_mask]
 
         # Visualize grasps using Open3D
@@ -180,8 +202,8 @@ class GraspEstimationNode:
 
         # Translation
         grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('y', [-np.pi/2]).as_matrix()
-        grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('x', [np.pi/2]).as_matrix()
-        grasp_matrix[:3, 3] -= grasp_matrix[:3, 0] * 0.06
+        grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('x', [-np.pi/2]).as_matrix()
+        grasp_matrix[:3, 3] -= grasp_matrix[:3, 0] * self.approach_distance
 
         pose_msg.pose.position.x = grasp_matrix[0, 3]
         pose_msg.pose.position.y = grasp_matrix[1, 3]
@@ -197,10 +219,10 @@ class GraspEstimationNode:
         # Transform pose to base link
         try:
             transform = self.tf_buffer.lookup_transform(
-                "dummy_base_link",                    # target frame
-                "camera_color_optical_frame",   # source frame
-                rospy.Time(0),                  # latest available transform
-                rospy.Duration(secs=1),         # timeout duration
+                "dummy_base_link",                      # target frame
+                "camera_color_optical_frame_virtual",   # source frame
+                rospy.Time(0),                          # latest available transform
+                rospy.Duration(secs=2),                 # timeout duration
             )
         except (
             tf2_ros.LookupException,

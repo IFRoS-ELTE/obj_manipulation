@@ -1,8 +1,33 @@
 <launch>
-    <!-- Launch grasp estimation node -->
-    <node pkg="obj_manipulation"
-          type="grasp_estimation_node.py"
-          name="grasp_estimation_node"
-          output="screen">
+    <!-- Camera Transform Arguments -->
+    <arg name="base_frame" default="base_link"/>
+    <arg name="input_frame" default="camera_color_optical_frame"/>
+    <arg name="output_frame" default="camera_color_optical_frame_virtual"/>
+    <arg name="offset_dist" default="0.75"/>
+    <arg name="rate" default="2"/>
+
+    <!-- Grasp Estimation Node Arguments -->
+    <arg name="alpha" default="0.6"/>
+    <arg name="max_trials" default="10"/>
+    <arg name="approach_distance" default="0.06"/>
+    <arg name="visualize_grasps" default="false"/>
+    <arg name="seg_model" default="sam"/>
+
+    <!-- Launch Camera Transform Node -->
+    <node pkg="obj_manipulation" type="camera_tf_node.py" name="camera_tf_node" output="screen">
+        <param name="base_frame" value="$(arg base_frame)"/>
+        <param name="input_frame" value="$(arg input_frame)"/>
+        <param name="output_frame" value="$(arg output_frame)"/>
+        <param name="offset_dist" value="$(arg offset_dist)"/>
+        <param name="rate" value="$(arg rate)"/>
+    </node>
+
+    <!-- Launch Grasp Estimation Node -->
+    <node pkg="obj_manipulation" type="grasp_estimation_node.py" name="grasp_estimation_node" output="screen">
+        <param name="alpha" value="$(arg alpha)"/>
+        <param name="max_trials" value="$(arg max_trials)"/>
+        <param name="approach_distance" value="$(arg approach_distance)"/>
+        <param name="visualize_grasps" value="$(arg visualize_grasps)"/>
+        <param name="seg_model" value="$(arg seg_model)"/>
     </node>
 </launch>

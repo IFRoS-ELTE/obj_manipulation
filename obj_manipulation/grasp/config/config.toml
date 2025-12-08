@@ -15,7 +15,7 @@ max_depth = 1.8             # Maximum allowed depth (Z) values in input point cl
 med_thresh = 0.4            # Maximum allowed absolute distance from point cloud median value. 
 
 # Grasp prediction filtering parameters
-grasp_conf_thresh = 0.15        # Minimum threshold for grasp confidence (success) scores.
-grasp_downsample_min = 20       # Minimum number of grasps to maintain when downsampling.
+grasp_conf_thresh = 0.125       # Minimum threshold for grasp confidence (success) scores.
+grasp_downsample_min = 10       # Minimum number of grasps to maintain when downsampling.
 grasp_downsample_factor = 0.50  # Factor for downsampling grasps.
 filter_grasps = true            # Filter grasps so they only contain grasp within the object's point cloud.
