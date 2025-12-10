@@ -2,7 +2,6 @@
 from typing import Tuple
 
 import numpy as np
-from numpy.typing import NDArray
 from scipy.spatial.transform import Rotation as R
 
 import rospy
@@ -32,7 +31,7 @@ class CameraTFNode:
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
 
-    def get_camera_transform(self) -> Tuple[NDArray, R, rospy.Time]:
+    def get_camera_transform(self) -> Tuple[R, rospy.Time]:
         """Get the latest camera frame transform with respect to the base frame.
         
         Returns:
@@ -50,28 +49,26 @@ class CameraTFNode:
         )
         
         # Extract translation and orientation
-        t = transform.transform.translation
         r = transform.transform.rotation
-        position = np.array([t.x, t.y, t.z])
         rotation = R.from_quat([r.x, r.y, r.z, r.w])
         stamp = transform.header.stamp 
-        return position, rotation, stamp
+        return rotation, stamp
 
-    def pub_virtual_camera_transform(self, pos: NDArray, rot: R, stamp: rospy.Time) -> None:
-        """Publish the latest virtual camera frame transform with respect to the base frame.
+    def pub_virtual_camera_transform(self, rot: R, stamp: rospy.Time) -> None:
+        """Publish the latest virtual camera frame transform with respect to the camera frame.
         """
-        # Offset position along x-axis
-        pos_tf = pos + self.offset
+        # Offset position along x-axis of the world frame
+        pos_tf = rot.apply(self.offset, inverse=True)
 
         # Compute virtual frame orientation based on actual camera orientation
         roll = rot.as_euler("xyz")[0]
         offset_rot = R.from_euler("XZ", [-2 * roll, np.pi])
-        quat_tf = (rot * offset_rot).as_quat()
+        quat_tf = offset_rot.as_quat()
 
         # Create transform
         transform = TransformStamped()
         transform.header.stamp = stamp
-        transform.header.frame_id = self.base_frame
+        transform.header.frame_id = self.input_frame
         transform.child_frame_id = self.output_frame
 
         transform.transform.translation.x = pos_tf[0]
@@ -91,8 +88,8 @@ def main():
     node = CameraTFNode()
     rate = rospy.Rate(node.rate)
     while not rospy.is_shutdown():
-        pos, rot, stamp = node.get_camera_transform()
-        node.pub_virtual_camera_transform(pos, rot, stamp)
+        rot, stamp = node.get_camera_transform()
+        node.pub_virtual_camera_transform(rot, stamp)
         rate.sleep()
 
 

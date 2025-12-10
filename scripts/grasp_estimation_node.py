@@ -43,7 +43,7 @@ class GraspEstimationNode:
         # -------- Load node parameters --------
         self.alpha = rospy.get_param("/grasp_estimation_node/alpha", 0.6)
         self.max_trials = rospy.get_param("/grasp_estimation_node/max_trials", 25)
-        self.approach_distance = rospy.get_param("/grasp_estimation_node/approach_distance", 0.17)
+        self.approach_distance = rospy.get_param("/grasp_estimation_node/approach_distance", 0.0325)
         self.visualize_grasps = rospy.get_param("/grasp_estimation_node/visualize_grasps", False)
         seg_model = rospy.get_param("/grasp_estimation_node/seg_model", "sam")
         assert seg_model in ["sam", "uois"]
@@ -203,7 +203,7 @@ class GraspEstimationNode:
         # Translation
         grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('y', [-np.pi/2]).as_matrix()
         grasp_matrix[:3, :3] = grasp_matrix[:3, :3] @ R.from_euler('x', [-np.pi/2]).as_matrix()
-        grasp_matrix[:3, 3] -= grasp_matrix[:3, 0] * self.approach_distance
+        grasp_matrix[:3, 3] += grasp_matrix[:3, 2] * self.approach_distance
 
         pose_msg.pose.position.x = grasp_matrix[0, 3]
         pose_msg.pose.position.y = grasp_matrix[1, 3]

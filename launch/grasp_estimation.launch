@@ -9,8 +9,8 @@
     <!-- Grasp Estimation Node Arguments -->
     <arg name="alpha" default="0.6"/>
     <arg name="max_trials" default="10"/>
-    <arg name="approach_distance" default="0.06"/>
-    <arg name="visualize_grasps" default="false"/>
+    <arg name="approach_distance" default="0.0325"/>
+    <arg name="visualize_grasps" default="true"/>
     <arg name="seg_model" default="sam"/>
 
     <!-- Launch Camera Transform Node -->
