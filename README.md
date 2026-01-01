@@ -499,7 +499,7 @@ Grasp candidates are generated from the segmented object point cloud, and the op
 
 **Object Manipulation Demo Video**
 
-[![Watch the demo](files/images/videothumbnail.png)](https://drive.google.com/file/d/1GBIwjhzuqD5L8JFSGexkkYydmD54XwB9/view?usp=sharing)
+[![Watch the demo](files/images/videothumbnail.png)](https://drive.google.com/drive/folders/1G90wd-KYNR6D9cJWEA4nhOD_YlCktPKP?usp=drive_link)
 
 *Click the image to watch the full demo video.*
 
