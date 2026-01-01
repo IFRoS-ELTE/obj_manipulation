@@ -3,7 +3,7 @@
 
 
 
-![](images/demo.gif)
+![](files/images/demo.gif)
 
 ---
 ###  👥 Team Members
@@ -465,8 +465,8 @@ This design ensures that grasp prediction runs only when explicitly requested, a
 
 Raw point cloud data is filtered to remove noise and isolate the workspace using voxel filtering and pass-through constraints.
 
-![Point Cloud Filtering – Stage 1](images/PointCloudFilter1.png)
-![Point Cloud Filtering – Stage 2](images/PointCloudFilter2.png)
+![Point Cloud Filtering – Stage 1](files/images/PointCloudFilter1.png)
+![Point Cloud Filtering – Stage 2](files/images/PointCloudFilter2.png)
 
 
 
@@ -474,8 +474,8 @@ Raw point cloud data is filtered to remove noise and isolate the workspace using
 
 Individual objects are segmented from the scene using instance segmentation techniques, enabling object-level manipulation.
 
-![Instance Segmentation – Example 1](images/InstanceSegmentation1.png)
-![Instance Segmentation – Example 2](images/InstanceSegmentation2.png)
+![Instance Segmentation – Example 1](files/images/InstanceSegmentation1.png)
+![Instance Segmentation – Example 2](files/images/InstanceSegmentation2.png)
 
 
 
@@ -483,8 +483,8 @@ Individual objects are segmented from the scene using instance segmentation tech
 
 The Segment Anything Model (SAM) is used for both automatic and user-guided object selection, producing high-quality segmentation masks.
 
-![SAM Automatic Segmentation](images/SAMAuto.png)
-![SAM Interactive Selection](images/SAMSelect.png)
+![SAM Automatic Segmentation](files/images/SAMAuto.png)
+![SAM Interactive Selection](files/images/SAMSelect.png)
 
 
 
@@ -492,21 +492,21 @@ The Segment Anything Model (SAM) is used for both automatic and user-guided obje
 
 Grasp candidates are generated from the segmented object point cloud, and the optimal grasp pose is selected for execution.
 
-![Grasp Pose Estimation](images/GraspEstimation.png)
+![Grasp Pose Estimation](files/images/GraspEstimation.png)
 
 ## 9.Video & Presentation
 
 
 **Object Manipulation Demo Video**
 
-[![Watch the demo](images/videothumbnail.png)](https://drive.google.com/file/d/1GBIwjhzuqD5L8JFSGexkkYydmD54XwB9/view?usp=sharing)
+[![Watch the demo](files/images/videothumbnail.png)](https://drive.google.com/file/d/1GBIwjhzuqD5L8JFSGexkkYydmD54XwB9/view?usp=sharing)
 
 *Click the image to watch the full demo video.*
 
 
 
 **Object Manipulation Presentation Slide**
-[![Object Manipulation Presentation](images/presentation/Slide1.jpg)](images/presentation/presentation.pdf)
+[![Object Manipulation Presentation](files/presentation/Slide1.jpg)](files/presentation/presentation.pdf)
 
 
 
