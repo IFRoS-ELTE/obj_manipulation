@@ -3,7 +3,7 @@
 
 
 
-![](files/images/demo.gif)
+![Demo](files/images/demo.gif)
 
 ---
 ###  👥 Team Members
