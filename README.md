@@ -64,7 +64,22 @@ The system runs across **ROS Melodic** (robot drivers & simulation) and
 
 ---
 
-## 2. CLONE THIS REPO.
+## 2. MATHEMATICAL CONCEPTS
+
+For a comprehensive understanding of the mathematical algorithms and equations used in this system, see:
+
+📘 **[MATHEMATICAL_CONCEPTS.md](./MATHEMATICAL_CONCEPTS.md)**
+
+This document provides detailed mathematical explanations for:
+- **Grasp Estimation:** 6-DoF pose construction, Gram-Schmidt orthonormalization, coordinate transformations
+- **Segmentation:** Gaussian mean-shift clustering, morphological operations
+- **Point Cloud Processing:** Farthest point sampling, ball query, hierarchical feature extraction
+- **Motion Planning:** Homogeneous transformations, quaternions, inverse kinematics
+- **Camera Models:** Pinhole projection, depth-to-3D conversion
+
+---
+
+## 3. CLONE THIS REPO.
 
 Clone the project repository to your local machine:
 
@@ -95,7 +110,7 @@ obj_manipulation/
 └── ...
 ```
 ---
-## 3. DOCKER SETUP (Dual ROS Containers)
+## 4. DOCKER SETUP (Dual ROS Containers)
 
 This project uses a **dual-container Docker setup** to run two ROS1  distributions simultaneously:
 
@@ -209,7 +224,7 @@ docker compose down
 
 ---
 
-## 4. BUILD WORKSPACE (ROS1)
+## 5. BUILD WORKSPACE (ROS1)
 
 Before running any nodes, you need to **build the Catkin workspace** inside the containers.
 
@@ -277,7 +292,7 @@ After this, Melodic and Noetic containers should communicate properly through th
 
 ---
 
-## 5. LAUNCH ROBOT
+## 6. LAUNCH ROBOT
 
 This section covers launching the Scout + xArm6 robot system in **simulation** or **real hardware**, as well as using perception nodes and MoveIt commander.
 
@@ -392,7 +407,7 @@ Trigger execution manually:
 rostopic pub /move_node/allow_execution std_msgs/Bool "data: true"
 ```
 
-## 6. UNSEEN OBJECT INSTANCE SEGMENTATION 
+## 7. UNSEEN OBJECT INSTANCE SEGMENTATION 
 
 #### NOTE: Follow segment/models/README.md to download pre-trained weights.
 
@@ -415,7 +430,7 @@ Trigger grasp prediction manually:
 rostopic pub /grasp_estimation_node/trigger std_msgs/Bool "data: true"
 ```
 
-## 7. GRASP ESTIMATION (Contact-GraspNet)
+## 8. GRASP ESTIMATION (Contact-GraspNet)
 
 The **grasp estimation module** uses Contact-GraspNet to predict grasps for unseen objects based on RGB-D input.  
 
@@ -457,11 +472,11 @@ This design ensures that grasp prediction runs only when explicitly requested, a
 ---
 
 
-## 8. RESULTS
+## 9. RESULTS
 
 ### 
 
-### 8.1 Point Cloud Pre-processing
+### 9.1 Point Cloud Pre-processing
 
 Raw point cloud data is filtered to remove noise and isolate the workspace using voxel filtering and pass-through constraints.
 
@@ -470,7 +485,7 @@ Raw point cloud data is filtered to remove noise and isolate the workspace using
 
 
 
-### 8.2 Instance Segmentation
+### 9.2 Instance Segmentation
 
 Individual objects are segmented from the scene using instance segmentation techniques, enabling object-level manipulation.
 
@@ -479,7 +494,7 @@ Individual objects are segmented from the scene using instance segmentation tech
 
 
 
-### 8.3 SAM-based Object Selection
+### 9.3 SAM-based Object Selection
 
 The Segment Anything Model (SAM) is used for both automatic and user-guided object selection, producing high-quality segmentation masks.
 
@@ -488,13 +503,13 @@ The Segment Anything Model (SAM) is used for both automatic and user-guided obje
 
 
 
-### 8.4 Grasp Pose Estimation
+### 9.4 Grasp Pose Estimation
 
 Grasp candidates are generated from the segmented object point cloud, and the optimal grasp pose is selected for execution.
 
 ![Grasp Pose Estimation](files/images/GraspEstimation.png)
 
-## 9.Video & Presentation
+## 10.Video & Presentation
 
 
 **Object Manipulation Demo Video**
@@ -510,7 +525,7 @@ Grasp candidates are generated from the segmented object point cloud, and the op
 
 
 
-## 10. TROUBLESHOOTING
+## 11. TROUBLESHOOTING
 
 If you encounter issues while running the system, refer to these common fixes:
 
@@ -540,7 +555,7 @@ Other tips:
 - Check GPU drivers if using Gazebo with hardware acceleration.
 
 
-## 11. ADDITIONAL RESOURCES
+## 12. ADDITIONAL RESOURCES
 Helpful links for hardware and software documentation:
 
  Agilex official Repo
