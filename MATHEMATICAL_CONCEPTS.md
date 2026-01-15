@@ -205,7 +205,7 @@ $$
 
 where $\delta$ is the grouping threshold and $\text{mode}(\mathbf{x})$ is the converged position of point $\mathbf{x}$.
 
-**Implementation:** `obj_manipulation/segment/cluster.py:113-138` (core algorithm), full method at lines 178-204
+**Implementation:** `obj_manipulation/segment/cluster.py` - Core mean-shift iteration at lines 113-138 (`seed_hill_climbing` method), complete clustering pipeline at lines 178-204 (`mean_shift` method)
 
 ---
 
@@ -445,7 +445,7 @@ q_z &= \cos\frac{\phi}{2}\cos\frac{\theta}{2}\sin\frac{\psi}{2} - \sin\frac{\phi
 \end{aligned}
 $$
 
-**Implementation:** Uses ROS `tf.transformations` library
+**Implementation:** `scripts/xarm_move.py:62` (uses `tf.transformations.quaternion_from_euler`)
 
 ---
 
