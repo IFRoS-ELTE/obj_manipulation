@@ -46,7 +46,7 @@ f_x & 0 & c_x \\
 \end{bmatrix}
 $$
 
-**Implementation:** `obj_manipulation/grasp/utils.py:15-43`
+**Implementation:** `obj_manipulation/grasp/utils/utils.py:15-43`
 
 ---
 
@@ -125,7 +125,7 @@ FPS is a greedy algorithm for selecting a subset of $N$ points from a point clou
 
 **Computational Complexity:** $O(N \cdot |\mathcal{P}|)$
 
-**Implementation:** `obj_manipulation/grasp/utils_pointnet.py:57-87`
+**Implementation:** `obj_manipulation/grasp/utils/utils_pointnet.py:57-87`
 
 ---
 
@@ -145,7 +145,7 @@ $$
 
 where $\mathbf{1}_n$ and $\mathbf{1}_m$ are column vectors of ones.
 
-**Implementation:** `obj_manipulation/grasp/utils_pointnet.py:12-22`
+**Implementation:** `obj_manipulation/grasp/utils/utils_pointnet.py:12-22`
 
 ---
 
@@ -205,7 +205,7 @@ $$
 
 where $\delta$ is the grouping threshold and $\text{mode}(\mathbf{x})$ is the converged position of point $\mathbf{x}$.
 
-**Implementation:** `obj_manipulation/segment/cluster.py:113-200`
+**Implementation:** `obj_manipulation/segment/cluster.py:113-138` (core algorithm), full method at lines 178-204
 
 ---
 
@@ -287,7 +287,7 @@ $$
 
 This is used to define local neighborhoods for feature extraction.
 
-**Implementation:** `obj_manipulation/grasp/utils_pointnet.py`
+**Implementation:** `obj_manipulation/grasp/utils/utils_pointnet.py`
 
 ---
 
@@ -647,7 +647,7 @@ Typical values for Intel RealSense D435:
 | $\mathbf{q}$ | Joint angles or quaternion (context-dependent) |
 | $||\cdot||_2$ | Euclidean (L2) norm |
 | $\nabla$ | Gradient operator |
-| $\otimes$ | Cross product |
+| $\times$ | Cross product |
 | $\circ$ | Composition operator |
 
 ---
