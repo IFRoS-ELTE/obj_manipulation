@@ -445,7 +445,7 @@ Note: The node stores the latest RGB and Depth images but does not automatically
 
 Manually trigger grasp prediction using the ROS topic:
 ```bash
-rostopic pub /grasp_estimation_node/trigger std_msgs/Bool "data: true"
+rostopic pub --once /move_node/allow_execution std_msgs/Bool "data: true"
 ```
 
 - Message Type: std_msgs/Bool

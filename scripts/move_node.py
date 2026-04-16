@@ -38,10 +38,10 @@ class MoveNode(object):
         self.arm_group.set_planning_time(5)
         self.arm_group.set_num_planning_attempts(50)
         self.arm_group.allow_replanning(True)
-        self.arm_group.set_goal_position_tolerance(0.01)
-        self.arm_group.set_goal_orientation_tolerance(0.05)
-        self.arm_group.set_max_velocity_scaling_factor(0.5)
-        self.arm_group.set_max_acceleration_scaling_factor(0.5)
+        self.arm_group.set_goal_position_tolerance(0.001)
+        self.arm_group.set_goal_orientation_tolerance(0.02)
+        self.arm_group.set_max_velocity_scaling_factor(0.1)
+        self.arm_group.set_max_acceleration_scaling_factor(0.1)
 
         # Threading 
         self._lock = threading.Lock()
@@ -100,18 +100,19 @@ class MoveNode(object):
                 self.ctrl_gripper(Bool(data=False))
                 rospy.sleep(3)
                 self.move_home()
-            self.use_gripper = False
-            rospy.loginfo("Execution complete.")
-            self._latest_plan = None
+                self.use_gripper = False
+                self._latest_plan = None
+                rospy.loginfo("Execution complete.")
+            else:
+                self.move_offset()
         finally:
             # self.arm_group.stop()
             # self.arm_group.clear_pose_targets()
-            self.move_offset()
-            self.use_gripper = True
+            # self.use_gripper = True
             self._lock.release()
     
     def move_offset(self):
-        offset = 0.19
+        offset = 0.09
         mat = quaternion_matrix([self.latest_pose.pose.orientation.x,
                                  self.latest_pose.pose.orientation.y,
                                  self.latest_pose.pose.orientation.z,
@@ -122,7 +123,7 @@ class MoveNode(object):
         self.latest_pose.pose.position.z += mat[2, 0] * offset
 
         self._plan_with_rrtconnect(self.latest_pose) 
-        # self.use_gripper = True
+        self.use_gripper = True
         self.arm_group.stop()
         self.arm_group.clear_pose_targets()
 
@@ -155,14 +156,16 @@ class MoveNode(object):
             grip_msg.force = 25.0
             grip_msg.speed = 0.0
         self.grip_ctrl_pub.publish(grip_msg)
+        self.use_gripper = False
 
     def move_home(self):
-        self.arm_group.set_named_target("home")
+        self.arm_group.set_named_target("new_home")
         self.arm_group.go(wait=True)
-        rospy.sleep(3)
+        rospy.sleep(2)
         self.ctrl_gripper(Bool(data=True))
+        self.use_gripper = False
 
 if __name__ == "__main__":
     node = MoveNode()
     rospy.spin()
-    moveit_commander.roscpp_shutdown()
+    # moveit_commander.roscpp_shutdown()
